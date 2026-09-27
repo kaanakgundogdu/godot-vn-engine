@@ -1,0 +1,33 @@
+// Chapter two: a timed choice and two endings picked by a flag.
+
+# start
+@chapter_title "Chapter Two" "One Last Choice" 2.0
+@bg bg_dusk with fade 1.0
+Narrator: Chapter two picks up right after chapter one. This part shows a timed choice and two different endings.
+
+# meet2
+Qaan: One last thing before you go. Stay a while, or head home?
+@choice_timer 6 1
+- Stay a while longer. -> stay
+- Head home now. -> leave
+
+# stay
+@flag warmth += 2
+Qaan: Good, I like the company. Staying just raised "warmth" again. This gives plus 2.
+@jump ending_check
+
+# leave
+Narrator: You wave goodbye and step outside. If the timer above had run out, this is the choice it would have picked by default.
+@jump ending_check
+
+# ending_check
+@jump_if warmth >= 4 -> good_route
+@jump plain_route
+
+# good_route
+Qaan: Thanks for sticking around, it made the tour better. Thank you for using this engine <3
+@end ending_warm
+
+# plain_route
+Qaan: Take care out there.
+@end ending_plain

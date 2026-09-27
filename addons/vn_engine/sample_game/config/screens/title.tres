@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="VNEngineTitleScreenDef" load_steps=2 format=3 uid="uid://c64eg8s5kubyv"]
+
+[ext_resource type="Script" uid="uid://bcaqj1hj3hp64" path="res://addons/vn_engine/src/defs/title_screen_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+background = ""
+bgm = ""
+logo = ""
+menu_alignment = "center"
+cleared_background = ""
+cleared_bgm = ""
+show_extras_when = "never"
+show_chapter_select_when = "cleared_once"
+chapter_select_in_debug = true

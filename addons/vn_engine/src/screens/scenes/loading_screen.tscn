@@ -1,0 +1,109 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/vn_engine/src/screens/loading_screen.gd" id="1_ls07"]
+
+[node name="LoadingScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ls07")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="LoadingBackgroundRect" type="TextureRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0.35)
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TitleMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 96
+theme_override_constants/margin_top = 96
+theme_override_constants/margin_right = 96
+
+[node name="TitleVBox" type="VBoxContainer" parent="TitleMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="LoadingTitleLabel" type="Label" parent="TitleMargin/TitleVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+horizontal_alignment = 1
+theme_type_variation = &"VNHeadingLabel"
+text = ""
+
+[node name="LoadingSubtitleLabel" type="Label" parent="TitleMargin/TitleVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+modulate = Color(1, 1, 1, 0.75)
+horizontal_alignment = 1
+theme_type_variation = &"VNSubheadingLabel"
+text = ""
+
+[node name="BottomMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 32
+
+[node name="BottomVBox" type="VBoxContainer" parent="BottomMargin"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 2
+theme_override_constants/separation = 10
+
+[node name="LoadingBar" type="ProgressBar" parent="BottomMargin/BottomVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 10)
+layout_mode = 2
+show_percentage = false
+
+[node name="LoadingLabel" type="Label" parent="BottomMargin/BottomVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 2
+text = "Loading..."
+
+[node name="LoadingStatusLabel" type="Label" parent="BottomMargin/BottomVBox"]
+unique_name_in_owner = true
+visible = false
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+horizontal_alignment = 2
+theme_type_variation = &"VNSmallLabel"
+text = ""

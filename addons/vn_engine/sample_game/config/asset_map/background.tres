@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="VNEngineAssetMapEntry" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/vn_engine/src/defs/asset_map_entry.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+kind = "background"
+root = "res://addons/vn_engine/sample_game/assets/backgrounds/"
+extensions = Array[String]([".tres"])

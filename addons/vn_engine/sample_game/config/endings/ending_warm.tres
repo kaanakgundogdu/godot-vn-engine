@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="VNEngineEndingDef" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://eprguh125fru" path="res://addons/vn_engine/src/defs/ending_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "ending_warm"
+title = ""
+rank = "good"
+number = 2
+condition = ""
+cg = ""
+bgm = ""
+card_duration = 3.0
+credits_variant = ""
+ed_movie = ""
+unlocks = PackedStringArray()
+is_secret = false

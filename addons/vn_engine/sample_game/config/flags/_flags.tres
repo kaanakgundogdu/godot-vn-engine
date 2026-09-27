@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="VNEngineFlagList" load_steps=6 format=3 uid="uid://co7evf0qnfkq8"]
+
+[ext_resource type="Script" uid="uid://cmlb5h8kxa82" path="res://addons/vn_engine/src/defs/flag_list.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://d2dnko38v3qdu" path="res://addons/vn_engine/src/defs/flag_def.gd" id="2_flagscript"]
+[ext_resource type="Resource" uid="uid://djjoclh8axld7" path="res://addons/vn_engine/sample_game/config/flags/took_tour.tres" id="3_took_tour"]
+[ext_resource type="Resource" uid="uid://dvcat37qo6ujg" path="res://addons/vn_engine/sample_game/config/flags/warmth.tres" id="4_warmth"]
+[ext_resource type="Resource" path="res://addons/vn_engine/sample_game/config/flags/met_ely.tres" id="5_met_ely"]
+
+[resource]
+script = ExtResource("1_script")
+flags = Array[ExtResource("2_flagscript")]([ExtResource("3_took_tour"), ExtResource("4_warmth"), ExtResource("5_met_ely")])

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="VNEngineCastMember" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://ctewnvr5khiu6" path="res://addons/vn_engine/src/defs/cast_member.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "ely"
+display_name = "Ely"
+name_color = Color(0.85, 0.7, 1, 1)
+is_narrator = false

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="VNEngineCreditsDef" load_steps=5 format=3 uid="uid://buyipek6tf3r4"]
+
+[ext_resource type="Script" uid="uid://bmkcgkxabpsdk" path="res://addons/vn_engine/src/defs/credits_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bp6ldo4ke0iy2" path="res://addons/vn_engine/src/defs/credits_section.gd" id="2_sectionscript"]
+[ext_resource type="Resource" uid="uid://bfg0n6anenfae" path="res://addons/vn_engine/sample_game/config/credits/01_story.tres" id="3_story"]
+[ext_resource type="Resource" uid="uid://bd8frrlmuoxdh" path="res://addons/vn_engine/sample_game/config/credits/02_made_with.tres" id="4_made_with"]
+
+[resource]
+script = ExtResource("1_script")
+variant = ""
+sections = Array[ExtResource("2_sectionscript")]([ExtResource("3_story"), ExtResource("4_made_with")])
+scroll_speed = 60.0
+bgm = ""
+background = ""
+movie = ""
+allow_skip = true
+end_logo = ""

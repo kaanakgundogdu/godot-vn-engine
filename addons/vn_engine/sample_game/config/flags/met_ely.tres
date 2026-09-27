@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="VNEngineFlagDef" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://d2dnko38v3qdu" path="res://addons/vn_engine/src/defs/flag_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "met_ely"
+type = "bool"
+default_value = "false"
+scope = "playthrough"
+debug_name = "Has met Ely"

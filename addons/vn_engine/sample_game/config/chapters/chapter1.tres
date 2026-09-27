@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="VNEngineChapterDef" load_steps=3 format=3 uid="uid://b135lb5i1ejpc"]
+
+[ext_resource type="Script" uid="uid://xeegou1bnug5" path="res://addons/vn_engine/src/defs/chapter_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bh8h1xmntybgg" path="res://addons/vn_engine/src/defs/chapter_branch.gd" id="2_branchscript"]
+
+[resource]
+script = ExtResource("1_script")
+id = "chapter1"
+title = ""
+subtitle = ""
+script_path = "res://addons/vn_engine/sample_game/scenario/chapter1/scenario1.txt"
+intro_style = "none"
+intro_background = ""
+intro_duration = 2.0
+bgm = ""
+autosave_on_enter = true
+next_chapter = "chapter2"
+branches = Array[ExtResource("2_branchscript")]([])
+unlock_condition = ""

@@ -1,0 +1,128 @@
+[gd_scene load_steps=4 format=3 uid="uid://ck4ghbsetqnae"]
+
+[ext_resource type="Script" uid="uid://c5bwrii57k4gk" path="res://addons/vn_engine/src/ui/dialog_ui.gd" id="1_0qifp"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
+bg_color = Color(0.05, 0.05, 0.09, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.12)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_plate"]
+bg_color = Color(0.05, 0.05, 0.09, 0.92)
+border_width_bottom = 4
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[node name="DialogUI" type="Control" node_paths=PackedStringArray("dialog_label", "speaker_label")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_0qifp")
+dialog_label = NodePath("BackgroundBox/MarginContainer/VBoxContainer/DialogText")
+speaker_label = NodePath("NameRow/NamePlate/SpeakerLabel")
+
+[node name="BackgroundBox" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 64.0
+offset_top = -304.0
+offset_right = -64.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_box")
+
+[node name="MarginContainer" type="MarginContainer" parent="BackgroundBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 28
+
+[node name="VBoxContainer" type="VBoxContainer" parent="BackgroundBox/MarginContainer"]
+layout_mode = 2
+
+[node name="DialogText" type="RichTextLabel" parent="BackgroundBox/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 1
+bbcode_enabled = true
+theme_override_constants/line_separation = 6
+
+[node name="NameRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 88.0
+offset_top = -330.0
+offset_right = -88.0
+offset_bottom = -290.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+alignment = 0
+
+[node name="NamePlate" type="PanelContainer" parent="NameRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_plate")
+
+[node name="SpeakerLabel" type="Label" parent="NameRow/NamePlate"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 36
+
+[node name="ContinueIndicator" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -98.0
+offset_right = -80.0
+offset_bottom = -62.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(1, 1, 1, 0.85)
+text = "▼"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AutoTimer" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+
+[connection signal="timeout" from="AutoTimer" to="." method="_on_auto_timer_timeout"]

@@ -1,0 +1,125 @@
+[gd_scene load_steps=3 format=3 uid="uid://cndsg3hnyd68m"]
+
+[ext_resource type="Script" uid="uid://df8nv6pwt6wx8" path="res://addons/vn_engine/src/ui/in_game_menu.gd" id="1_iqjyi"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_flat"]
+
+[node name="InGameButtons" type="HBoxContainer"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -490.0
+offset_top = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 12
+alignment = 2
+script = ExtResource("1_iqjyi")
+
+[node name="AutoMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="AutoMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_pressed_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_focus_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_pressed_color = Color(1, 1, 1, 0.95)
+theme_type_variation = &"VNSmallButton"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+toggle_mode = true
+text = "Auto"
+
+[node name="SkipMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="SkipMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 0.95)
+theme_override_colors/font_pressed_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_focus_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_pressed_color = Color(1, 1, 1, 0.95)
+theme_type_variation = &"VNSmallButton"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+toggle_mode = true
+text = "Skip"
+
+[node name="LogMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="LogMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 0.95)
+theme_type_variation = &"VNSmallButton"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+text = "Log"
+
+[node name="SaveMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="SaveMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 0.95)
+theme_type_variation = &"VNSmallButton"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+text = "Save"
+
+[node name="LoadMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="LoadMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 0.95)
+theme_type_variation = &"VNSmallButton"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+text = "Load"
+
+[node name="SettingsMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="SettingsMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 0.95)
+theme_type_variation = &"VNSmallButton"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+text = "Settings"
+
+[node name="MenuMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="MenuMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.75)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 0.95)
+theme_type_variation = &"VNSmallButton"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+text = "Menu"

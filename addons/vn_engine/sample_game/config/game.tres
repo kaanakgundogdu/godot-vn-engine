@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="VNEngineGameManifest" load_steps=11 format=3 uid="uid://c4aw2a5627n7x"]
+
+[ext_resource type="Script" uid="uid://dukr7vcrg2qwd" path="res://addons/vn_engine/src/defs/game_manifest.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://xeegou1bnug5" path="res://addons/vn_engine/src/defs/chapter_def.gd" id="2_chapterscript"]
+[ext_resource type="Resource" uid="uid://b135lb5i1ejpc" path="res://addons/vn_engine/sample_game/config/chapters/chapter1.tres" id="3_chapter1"]
+[ext_resource type="Resource" uid="uid://rkeumq8cf38b" path="res://addons/vn_engine/sample_game/config/chapters/chapter2.tres" id="4_chapter2"]
+[ext_resource type="Script" uid="uid://eprguh125fru" path="res://addons/vn_engine/src/defs/ending_def.gd" id="5_endingscript"]
+[ext_resource type="Resource" path="res://addons/vn_engine/sample_game/config/endings/ending_plain.tres" id="6_ending_plain"]
+[ext_resource type="Resource" path="res://addons/vn_engine/sample_game/config/endings/ending_warm.tres" id="7_ending_warm"]
+[ext_resource type="Resource" uid="uid://co7evf0qnfkq8" path="res://addons/vn_engine/sample_game/config/flags/_flags.tres" id="8_flags"]
+[ext_resource type="Resource" uid="uid://buyipek6tf3r4" path="res://addons/vn_engine/sample_game/config/credits/_credits.tres" id="9_credits"]
+[ext_resource type="Resource" uid="uid://c64eg8s5kubyv" path="res://addons/vn_engine/sample_game/config/screens/title.tres" id="10_title"]
+
+[resource]
+script = ExtResource("1_script")
+game_id = "vn_engine_sample"
+version = "0.1.0"
+first_chapter = "chapter1"
+default_ending = "ending_plain"
+chapters = Array[ExtResource("2_chapterscript")]([ExtResource("3_chapter1"), ExtResource("4_chapter2")])
+endings = Array[ExtResource("5_endingscript")]([ExtResource("6_ending_plain"), ExtResource("7_ending_warm")])
+flags = ExtResource("8_flags")
+credits = ExtResource("9_credits")
+title = ExtResource("10_title")

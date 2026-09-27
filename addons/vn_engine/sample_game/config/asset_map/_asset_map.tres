@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="VNEngineAssetMap" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/vn_engine/src/defs/asset_map.gd" id="1_script"]
+[ext_resource type="Script" path="res://addons/vn_engine/src/defs/asset_map_entry.gd" id="2_entryscript"]
+[ext_resource type="Resource" path="res://addons/vn_engine/sample_game/config/asset_map/background.tres" id="3_background"]
+
+[resource]
+script = ExtResource("1_script")
+entries = Array[ExtResource("2_entryscript")]([ExtResource("3_background")])

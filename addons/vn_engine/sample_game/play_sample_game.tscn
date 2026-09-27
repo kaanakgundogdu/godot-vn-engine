@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://6xlm26tpcxng"]
+
+[ext_resource type="PackedScene" uid="uid://crk3wahaeo62d" path="res://addons/vn_engine/src/flow/scenes/vn_main.tscn" id="1_main"]
+
+[node name="PlaySampleGame" instance=ExtResource("1_main")]
+content_root = "res://addons/vn_engine/sample_game/"

@@ -1,0 +1,32 @@
+[gd_scene load_steps=6 format=3 uid="uid://dfp4gfwud3o4r"]
+
+[ext_resource type="Script" uid="uid://k2ifdtltqcex" path="res://addons/vn_engine/src/systems/audio_system.gd" id="1_luyea"]
+[ext_resource type="Script" uid="uid://db2pv408tlxpr" path="res://addons/vn_engine/src/defs/audio_channel.gd" id="2_upvq2"]
+
+[sub_resource type="Resource" id="Resource_3ka1s"]
+script = ExtResource("2_upvq2")
+command_name = "music"
+use_fade = true
+bus_name = "Music"
+base_volume_db = 0.0
+metadata/_custom_type_script = "uid://db2pv408tlxpr"
+
+[sub_resource type="Resource" id="Resource_ttgfo"]
+script = ExtResource("2_upvq2")
+command_name = "sfx"
+use_fade = false
+bus_name = "Sfx"
+base_volume_db = 0.0
+metadata/_custom_type_script = "uid://db2pv408tlxpr"
+
+[sub_resource type="Resource" id="Resource_f8etk"]
+script = ExtResource("2_upvq2")
+command_name = "voice"
+use_fade = false
+bus_name = "Voice"
+base_volume_db = 0.0
+metadata/_custom_type_script = "uid://db2pv408tlxpr"
+
+[node name="AudioSystem" type="Node"]
+script = ExtResource("1_luyea")
+channels = Array[ExtResource("2_upvq2")]([SubResource("Resource_3ka1s"), SubResource("Resource_ttgfo"), SubResource("Resource_f8etk")])

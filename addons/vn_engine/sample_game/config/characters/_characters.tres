@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="VNEngineCast" load_steps=5 format=3]
+
+[ext_resource type="Script" uid="uid://dw1mql7n7cprh" path="res://addons/vn_engine/src/defs/cast.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://ctewnvr5khiu6" path="res://addons/vn_engine/src/defs/cast_member.gd" id="2_entryscript"]
+[ext_resource type="Resource" path="res://addons/vn_engine/sample_game/config/characters/qaan.tres" id="3_qaan"]
+[ext_resource type="Resource" path="res://addons/vn_engine/sample_game/config/characters/ely.tres" id="4_ely"]
+
+[resource]
+script = ExtResource("1_script")
+characters = Array[ExtResource("2_entryscript")]([ExtResource("3_qaan"), ExtResource("4_ely")])

@@ -1,0 +1,82 @@
+// Chapter one: the tour. No images or audio files needed, only .tres
+// gradients for backgrounds. Copy this folder to start your own game.
+
+# start
+@chapter_title "Qaan's Tour" "A feature walkthrough" 2.0
+@bg bg_dawn with fade 1.0
+Narrator: Welcome. This chapter is a short tour of what VN Engine can do, no art or audio files needed. Press F3 to open the debug panel.
+
+# greet
+@datecard "Day One" "The Old Observatory"
+Qaan: Hi, I'm Qaan. I run this place. Want the full tour, or should we skip ahead?\nPress F3 again to close the debug panel.
+- Give me the full tour. -> tour
+- Skip ahead. -> skip
+
+# tour
+@flag took_tour = true
+@set_var warmth = 1
+Qaan: A name before the colon picks the speaker, and its color comes from the character file. A bare Narrator: line, like the one before this, shows no name at all. Maybe I will change it in the future to make it narrator or something like that.
+@call aside
+
+# after_tour
+Qaan: That line came right after the aside. "@return" brings you to the node below the one that called it.
+@jump hub
+
+# skip
+Qaan: Straight to the point, I like that.
+@jump hub
+
+# aside
+Qaan: This aside runs through "@call". Once it finishes, we jump right back to where we left off.
+@return
+
+# hub
+@bg bg_workshop with wipe_left 0.8
+Qaan: Let's look at two more things before we head out.
+- Ask about the telescope. -> topic_telescope once
+- Ask about Ely. (is this clickable?) -> topic_ely disabled_if met_ely == false
+- A bonus: peek at Qaan's notes. -> topic_notes disabled_if warmth < 2 once
+- A secret: the roof hatch. -> topic_roof if warmth >= 3 once
+- Move on. -> chapter_end
+
+# topic_telescope
+@flag warmth += 1
+Qaan: The telescope upstairs is older than the observatory itself. That was "@flag", a typed write with clamping and a default from config/flags/.
+@flag met_ely = true
+@jump hub
+
+# topic_ely
+@flag warmth += 1
+Ely: Hello. I catalog the stars here. Asking about me just unlocked through "disabled_if", it needed "met_ely" to be true first.
+@jump hub
+
+# topic_roof
+@flag warmth += 1
+Qaan: Nobody knows about the roof hatch. This choice was hidden until warmth reached 3, that's "if" at work. A hidden choice does not show up at all.
+@jump hub
+
+# topic_notes
+@flag warmth += 1
+Qaan: These are just old observation logs, nothing new. This choice was not clickable until warmth reached 2, that's "disabled_if" at work. Now it is clickable.
+@jump chapter_end
+
+# chapter_end
+@jump_if warmth >= 3 -> chapter_end_warm
+@jump_if warmth >= 1 -> chapter_end_mid
+@jump chapter_end_plain
+
+# chapter_end_warm
+Narrator: Qaan waves warmly. You've now seen speaker colors, choices, @flag, @set_var, and @call/@return.
+@jump bridge
+
+# chapter_end_mid
+Narrator: Qaan gives a friendly nod. You've seen the basics: choices, flags, and a call/return aside.
+@jump bridge
+
+# chapter_end_plain
+Narrator: Qaan shrugs. A quick visit, a quick tour. Chapter two is next either way.
+@jump bridge
+
+# bridge
+@bg bg_dusk with fade 1.2
+Qaan: That's chapter one. See you in chapter two.

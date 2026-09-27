@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="VNEngineFlagDef" load_steps=2 format=3 uid="uid://djjoclh8axld7"]
+
+[ext_resource type="Script" uid="uid://d2dnko38v3qdu" path="res://addons/vn_engine/src/defs/flag_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "took_tour"
+type = "bool"
+default_value = "false"
+scope = "playthrough"
+min_value = -999999
+max_value = 999999
+debug_name = "Did the player take Qaan's tour"

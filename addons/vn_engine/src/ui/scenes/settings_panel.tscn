@@ -1,0 +1,401 @@
+[gd_scene load_steps=3 format=3 uid="uid://4n2h8vhn4qpw"]
+
+[ext_resource type="Script" uid="uid://d1ssjidfvj3bl" path="res://addons/vn_engine/src/ui/settings_panel.gd" id="1_liaf6"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lo6vp"]
+content_margin_left = 32.0
+content_margin_top = 24.0
+content_margin_right = 32.0
+content_margin_bottom = 24.0
+bg_color = Color(0.05, 0.05, 0.09, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.12)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="SettingsPanel" type="ColorRect"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+script = ExtResource("1_liaf6")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainPanel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(1400, 860)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lo6vp")
+
+[node name="Layout" type="VBoxContainer" parent="CenterContainer/MainPanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="HeaderRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/MainPanel/Layout/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"VNHeadingLabel"
+text = "Settings"
+vertical_alignment = 1
+
+[node name="CloseSettingsButton" type="Button" parent="CenterContainer/MainPanel/Layout/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 60)
+layout_mode = 2
+text = "Close"
+
+[node name="HeaderSeparator" type="HSeparator" parent="CenterContainer/MainPanel/Layout"]
+layout_mode = 2
+
+[node name="SettingsTabs" type="TabContainer" parent="CenterContainer/MainPanel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Display" type="Control" parent="CenterContainer/MainPanel/Layout/SettingsTabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="DisplayScroll" type="ScrollContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="DisplayRows" type="VBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="FullscreenRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="FullscreenDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows/FullscreenRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Fullscreen"
+
+[node name="FullscreenToggle" type="CheckButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows/FullscreenRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WindowSizeRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="WindowSizeDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows/WindowSizeRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Window size"
+
+[node name="WindowSizeOption" type="OptionButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows/WindowSizeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VsyncRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="VsyncDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows/VsyncRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "VSync"
+
+[node name="VsyncToggle" type="CheckButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Display/DisplayScroll/DisplayRows/VsyncRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Audio" type="Control" parent="CenterContainer/MainPanel/Layout/SettingsTabs"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="AudioScroll" type="ScrollContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="AudioRows" type="VBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="MasterVolumeRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MasterVolumeDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MasterVolumeRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Master volume"
+
+[node name="MasterVolumeSlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MasterVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="MasterVolumeLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MasterVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+theme_type_variation = &"VNSmallLabel"
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="MusicVolumeRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MusicVolumeDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MusicVolumeRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Music volume"
+
+[node name="MusicVolumeSlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MusicVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="MusicVolumeLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MusicVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+theme_type_variation = &"VNSmallLabel"
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="SfxVolumeRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SfxVolumeDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/SfxVolumeRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "SFX volume"
+
+[node name="SfxVolumeSlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/SfxVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="SfxVolumeLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/SfxVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+theme_type_variation = &"VNSmallLabel"
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="VoiceVolumeRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="VoiceVolumeDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/VoiceVolumeRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Voice volume"
+
+[node name="VoiceVolumeSlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/VoiceVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="VoiceVolumeLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/VoiceVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+theme_type_variation = &"VNSmallLabel"
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="MuteOnFocusLossRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MuteOnFocusLossDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MuteOnFocusLossRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Mute when window is inactive"
+
+[node name="MuteOnFocusLossToggle" type="CheckButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/MuteOnFocusLossRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Text" type="Control" parent="CenterContainer/MainPanel/Layout/SettingsTabs"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="TextScroll" type="ScrollContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="TextRows" type="VBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="TextSpeedRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TextSpeedDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/TextSpeedRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Text speed"
+
+[node name="TextSpeedSlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/TextSpeedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="TextSpeedPreview" type="RichTextLabel" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+text = "The quick brown fox jumps over the lazy dog."
+scroll_active = false
+
+[node name="AutoSpeedRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AutoSpeedDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/AutoSpeedRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Auto-advance speed"
+
+[node name="AutoSpeedSlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/AutoSpeedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="SkipUnreadRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SkipUnreadDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/SkipUnreadRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Skip unread text"
+
+[node name="SkipUnreadToggle" type="CheckButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/SkipUnreadRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DialogOpacityRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="DialogOpacityDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/DialogOpacityRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Dialog box opacity"
+
+[node name="DialogOpacitySlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/DialogOpacityRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.85
+
+[node name="DialogOpacityLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/DialogOpacityRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+theme_type_variation = &"VNSmallLabel"
+layout_mode = 2
+text = "85%"
+horizontal_alignment = 2
+
+[node name="AutosaveRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AutosaveDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/AutosaveRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Autosave"
+
+[node name="AutosaveToggle" type="CheckButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/AutosaveRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FooterRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout"]
+layout_mode = 2
+
+[node name="FooterSpacer" type="Control" parent="CenterContainer/MainPanel/Layout/FooterRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ResetDefaultsButton" type="Button" parent="CenterContainer/MainPanel/Layout/FooterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reset to defaults"
