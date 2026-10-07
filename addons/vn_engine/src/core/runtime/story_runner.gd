@@ -50,6 +50,8 @@ var is_input_locked: bool = false
 
 var pending_choice_timer: Dictionary = {}
 
+const RUNAWAY_LIMIT := 256
+
 const DEFERRED_COMMANDS := ["jump", "jump_if", "call", "return", "scene", "end", "goto_chapter", "credits"]
 
 func _init() -> void:
@@ -102,7 +104,7 @@ func start_story(file_path: String, start_index: int = 0) -> void:
 func _load_script(file_path: String) -> bool:
 	script_res = VNEngineMain.game().take_preparsed_script(file_path)
 	if script_res == null:
-		script_res = VNEngineScenarioParser.parse_file(file_path, flag_list)
+		script_res = VNEngineScenarioLoader.load_script(file_path, flag_list)
 	ctx.script_res = script_res
 
 	if script_res.has_errors():
@@ -164,9 +166,8 @@ func play_node(index: int) -> void:
 
 	if node.is_pure_logic():
 		_consecutive_logic_count += 1
-		if _consecutive_logic_count > 256:
-			VNEngineLog.error("StoryRunner", "Runaway guard: 256 consecutive logic nodes, possible infinite loop")
-			end_story(EndReason.RUNAWAY_GUARD)
+		if _consecutive_logic_count > RUNAWAY_LIMIT:
+			_trip_runaway_guard(node)
 			return
 		next_node.call_deferred()
 		return
@@ -193,6 +194,20 @@ func play_node(index: int) -> void:
 
 	if not node.choices.is_empty():
 		choices_requested.emit(node.choices)
+
+func _trip_runaway_guard(node: VNEngineStoryNode) -> void:
+	if _ended:
+		return
+	_ended = true
+	end_reason = EndReason.RUNAWAY_GUARD
+	end_ending_id = ""
+	var message: String = "Runaway guard: %d consecutive logic nodes at '%s', possible infinite loop" % [RUNAWAY_LIMIT, node.id]
+	if OS.is_debug_build():
+		var diagnostic: VNEngineParseDiagnostic = VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.ERROR, node.line, message, "check jump/jump_if targets in '%s'" % state.current_file.get_file())
+		parse_diagnostics_ready.emit([diagnostic])
+		return
+	push_error("StoryRunner: %s (%s)" % [message, state.current_file])
+	parse_diagnostics_ready.emit([VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.ERROR, node.line, message)])
 
 func next_node() -> void:
 	if current_index < 0 or current_index >= script_res.nodes.size():

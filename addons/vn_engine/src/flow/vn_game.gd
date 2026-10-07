@@ -5,6 +5,8 @@ enum AppState { BOOT, TITLE, CHAPTER, ENDING, CREDITS }
 
 signal returned_to_title
 signal quit_requested
+signal chapter_finished(chapter_id: String)
+signal ending_reached(ending_id: String)
 
 var manifest: VNEngineGameManifest = null
 
@@ -21,6 +23,8 @@ var _ending_player: VNEngineEndingPlayer
 var _chapter_cache: VNEngineChapterPreloader = null
 
 var pending_load_slot: int = -1
+
+var return_to_title_on_finish: bool = true
 
 
 func _ready() -> void:
@@ -83,7 +87,10 @@ func get_ui() -> VNEngineUiDef:
 	return manifest.get_ui() if manifest != null else VNEngineUiDef.new()
 
 
-func start_screen() -> StringName:
+func start_screen(skip_boot: bool = false) -> StringName:
+	if skip_boot:
+		_set_state(AppState.TITLE)
+		return &"title"
 	if manifest != null and manifest.has_boot_sequence():
 		return &"opening"
 	return &"title"
@@ -112,17 +119,18 @@ func take_preparsed_script(script_path: String) -> VNEngineStoryScript:
 	return result
 
 
-func start_new_game() -> void:
+func start_new_game(chapter_id: String = "") -> void:
 	if not _has_main():
 		return
 	pending_load_slot = -1
 	if manifest == null:
 		show_error("start_new_game", "Game manifest not loaded (missing game.tres)")
 		return
-	if manifest.first_chapter == "":
+	var target: String = chapter_id if chapter_id != "" else manifest.first_chapter
+	if target == "":
 		show_error("start_new_game", "Manifest has no first_chapter configured")
 		return
-	goto_chapter(manifest.first_chapter)
+	goto_chapter(target)
 
 
 func load_slot(slot_id: int) -> void:
@@ -233,6 +241,8 @@ func quit_game() -> void:
 
 
 func on_story_ended(reason: int, ending_id: String, state: VNEngineStoryState) -> void:
+	if reason == VNEngineStoryRunner.EndReason.EXPLICIT_END or reason == VNEngineStoryRunner.EndReason.SCRIPT_EXHAUSTED:
+		chapter_finished.emit(state.chapter_id)
 	match reason:
 		VNEngineStoryRunner.EndReason.EXPLICIT_END:
 			if ending_id != "":
@@ -245,16 +255,14 @@ func on_story_ended(reason: int, ending_id: String, state: VNEngineStoryState) -
 					trigger_ending(manifest.default_ending if manifest != null else "")
 		VNEngineStoryRunner.EndReason.SCRIPT_EXHAUSTED:
 			finish_chapter(state)
-		VNEngineStoryRunner.EndReason.RUNAWAY_GUARD:
-			var msg: String = "Runaway guard triggered at node '%s' in '%s', possible infinite loop" % [state.current_node_id, state.current_file]
-			VNEngineLog.error("Game", msg)
-			show_error(state.current_file, msg)
 		_:
 			VNEngineLog.error("Game", "on_story_ended(): unknown end_reason: %d" % reason)
 
 
 func finish_chapter(state: VNEngineStoryState) -> void:
 	VNEngineMain.save_data().flush()
+	if not return_to_title_on_finish:
+		return
 	if manifest == null:
 		VNEngineLog.warn("Game", "finish_chapter(): no manifest loaded")
 		return_to_title()
@@ -284,28 +292,40 @@ func trigger_ending(ending_id: String) -> void:
 	if not _has_main():
 		return
 	if ending_id == "":
+		if not return_to_title_on_finish:
+			return
 		VNEngineLog.warn("Game", "trigger_ending(): empty ending_id, no ending selected")
 		return_to_title()
 		return
 
 	if manifest == null:
 		VNEngineLog.warn("Game", "trigger_ending('%s'): no manifest loaded" % ending_id)
+		if not return_to_title_on_finish:
+			ending_reached.emit(ending_id)
+			return
 		return_to_title()
 		return
 
 	var ending: VNEngineEndingDef = manifest.find_ending(ending_id)
 	if ending == null:
 		VNEngineLog.warn("Game", "trigger_ending(): ending not found: '%s'" % ending_id)
+		if not return_to_title_on_finish:
+			ending_reached.emit(ending_id)
+			return
 		return_to_title()
 		return
 
-	_set_state(AppState.ENDING)
 	var save_data: VNEngineSaveData = VNEngineMain.save_data()
 	save_data.mark_ending_seen(ending.id)
 	save_data.increment_cleared_count()
 	for unlock_id in ending.unlocks:
 		save_data.set_global_flag(unlock_id, true)
 	save_data.flush()
+	ending_reached.emit(ending.id)
+	if not return_to_title_on_finish:
+		return
+
+	_set_state(AppState.ENDING)
 
 	var root: VNEngineMain = _vn_main()
 	await _ending_player.present(root, ending, _current_stage_screen(), _shared_asset_resolver)

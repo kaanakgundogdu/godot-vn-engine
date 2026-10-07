@@ -1,54 +1,6 @@
-[gd_scene load_steps=9 format=3 uid="uid://crk3wahaeo62d"]
+[gd_scene load_steps=2 format=3 uid="uid://crk3wahaeo62d"]
 
 [ext_resource type="Script" uid="uid://bnhomoyhjnsjv" path="res://addons/vn_engine/src/flow/vn_main.gd" id="1"]
-[ext_resource type="Script" uid="uid://c2o5rgbkq17tp" path="res://addons/vn_engine/src/flow/transition_player.gd" id="2"]
-[ext_resource type="Shader" uid="uid://cc706xxrtm1x1" path="res://addons/vn_engine/src/shaders/transition.gdshader" id="3"]
-[ext_resource type="PackedScene" path="res://addons/vn_engine/src/ui/scenes/card_overlay.tscn" id="6_cardov"]
-[ext_resource type="PackedScene" uid="uid://dfp4gfwud3o4r" path="res://addons/vn_engine/src/systems/scenes/audio_system.tscn" id="8_paudio"]
-[ext_resource type="Script" path="res://addons/vn_engine/src/systems/save_system.gd" id="9_saves"]
-[ext_resource type="Script" path="res://addons/vn_engine/src/flow/vn_game.gd" id="10_game"]
-
-[sub_resource type="ShaderMaterial" id="1"]
-shader = ExtResource("3")
-shader_parameter/kind = 0
-shader_parameter/progress = 0.0
-shader_parameter/color = Color(0, 0, 0, 1)
 
 [node name="VNMain" type="Node"]
 script = ExtResource("1")
-
-[node name="ScreenLayer" type="CanvasLayer" parent="."]
-layer = 0
-
-[node name="OverlayLayer" type="CanvasLayer" parent="."]
-layer = 100
-
-[node name="TransitionLayer" type="CanvasLayer" parent="."]
-layer = 200
-
-[node name="TransitionOverlay" type="ColorRect" parent="TransitionLayer"]
-material = SubResource("1")
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0, 0, 0, 0)
-script = ExtResource("2")
-
-[node name="SystemLayer" type="CanvasLayer" parent="."]
-layer = 300
-
-[node name="CardOverlay" parent="SystemLayer" instance=ExtResource("6_cardov")]
-layout_mode = 3
-
-[node name="Systems" type="Node" parent="."]
-
-[node name="Game" type="Node" parent="Systems"]
-script = ExtResource("10_game")
-
-[node name="PersistentAudio" parent="Systems" instance=ExtResource("8_paudio")]
-
-[node name="Saves" type="Node" parent="Systems"]
-script = ExtResource("9_saves")

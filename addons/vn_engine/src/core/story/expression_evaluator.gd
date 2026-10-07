@@ -2,6 +2,24 @@ extends RefCounted
 class_name VNEngineExpressionEvaluator
 
 
+static var cache_enabled: bool = true
+static var _parse_cache: Dictionary = {}
+
+
+static func clear_cache() -> void:
+	_parse_cache.clear()
+
+
+static func _parse_cached(expr: String) -> Dictionary:
+	if not cache_enabled:
+		return _Parser.new(expr).parse()
+	if _parse_cache.has(expr):
+		return _parse_cache[expr]
+	var parsed: Dictionary = _Parser.new(expr).parse()
+	_parse_cache[expr] = parsed
+	return parsed
+
+
 static func evaluate(expr: String, vars: Dictionary) -> bool:
 	return bool(evaluate_value(expr, vars))
 
@@ -33,8 +51,7 @@ static func compare(current: Variant, op: String, target: Variant) -> bool:
 
 
 static func evaluate_value(expr: String, vars: Dictionary) -> Variant:
-	var parser: _Parser = _Parser.new(expr)
-	var parsed: Dictionary = parser.parse()
+	var parsed: Dictionary = _parse_cached(expr)
 	var errors: PackedStringArray = parsed["errors"]
 	if not errors.is_empty():
 		return false

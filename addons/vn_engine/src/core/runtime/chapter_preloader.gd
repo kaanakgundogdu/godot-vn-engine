@@ -1,6 +1,10 @@
 class_name VNEngineChapterPreloader
 extends RefCounted
 
+const _PRELOAD_KINDS: PackedStringArray = ["background", "cg", "music", "sfx", "movie"]
+
+static var _warned_preload: Dictionary = {}
+
 var parsed_script: VNEngineStoryScript = null
 
 var script_path: String = ""
@@ -14,7 +18,7 @@ var _loaded: Dictionary = {}
 
 func build_plan(script_path_in: String, resolver: VNEngineAssetResolver, flag_list: VNEngineFlagList, chapter: VNEngineChapterDef = null) -> void:
 	script_path = script_path_in
-	parsed_script = VNEngineScenarioParser.parse_file(script_path, flag_list)
+	parsed_script = VNEngineScenarioLoader.load_script(script_path, flag_list)
 
 	var cast: VNEngineCast = _load_cast()
 	_asset_paths = _collect_asset_paths(parsed_script, resolver, chapter, cast)
@@ -97,6 +101,8 @@ func _collect_asset_paths(script: VNEngineStoryScript, resolver: VNEngineAssetRe
 			_add_path(result, seen, resolver.resolve("background", chapter.intro_background))
 		if chapter.bgm != "":
 			_add_path(result, seen, resolver.resolve("music", chapter.bgm))
+		for value: String in chapter.preload_assets:
+			_add_path(result, seen, _resolve_preload_value(value, resolver))
 
 	for node: VNEngineStoryNode in script.nodes:
 		for cmd: Dictionary in node.commands:
@@ -130,6 +136,30 @@ func _collect_asset_paths(script: VNEngineStoryScript, resolver: VNEngineAssetRe
 					_add_path(result, seen, _resolve_show(args, resolver, cast))
 
 	return PackedStringArray(result)
+
+
+func _resolve_preload_value(value: String, resolver: VNEngineAssetResolver) -> String:
+	var key: String = value.strip_edges()
+	if key == "":
+		return ""
+
+	var path: String = ""
+	if key.begins_with("res://"):
+		if ResourceLoader.exists(key):
+			path = key
+	else:
+		var was_silent: bool = resolver.silent
+		resolver.silent = true
+		for kind: String in _PRELOAD_KINDS:
+			path = resolver.resolve(kind, key)
+			if path != "":
+				break
+		resolver.silent = was_silent
+
+	if path == "" and not _warned_preload.has(key):
+		_warned_preload[key] = true
+		VNEngineLog.warn("ChapterPreloader", "preload_assets entry not found, skipping: '%s'" % key)
+	return path
 
 
 func _resolve_show(args: String, resolver: VNEngineAssetResolver, cast: VNEngineCast) -> String:

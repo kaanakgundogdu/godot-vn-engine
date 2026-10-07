@@ -1,12 +1,30 @@
+@icon("res://addons/vn_engine/src/icons/vn_engine_main.png")
 class_name VNEngineMain
 extends Node
 
+signal chapter_finished(chapter_id: String)
+signal ending_reached(ending_id: String)
+signal returned_to_title
+signal quit_requested
+
 const DEV_OVERLAY_SCENE := "res://addons/vn_engine/src/ui/scenes/dev_overlay.tscn"
+const TRANSITION_SHADER: Shader = preload("res://addons/vn_engine/src/shaders/transition.gdshader")
+const CARD_OVERLAY_SCENE: PackedScene = preload("res://addons/vn_engine/src/ui/scenes/card_overlay.tscn")
+const AUDIO_SYSTEM_SCENE: PackedScene = preload("res://addons/vn_engine/src/systems/scenes/audio_system.tscn")
+const TRANSITION_PLAYER_SCRIPT: GDScript = preload("res://addons/vn_engine/src/flow/transition_player.gd")
+const SAVE_SYSTEM_SCRIPT: GDScript = preload("res://addons/vn_engine/src/systems/save_system.gd")
+const GAME_SCRIPT: GDScript = preload("res://addons/vn_engine/src/flow/vn_game.gd")
 
 @export_dir var content_root: String = ""
 @export var save_folder: String = "user://vn_engine/{game_id}/saves/"
 @export var settings_file: String = "user://vn_engine/{game_id}/settings.json"
 @export var verbose_log: bool = false
+@export_enum("boot", "title", "chapter") var start_mode: String = "boot"
+## Chapter id used when start_mode is "chapter". Empty starts the first chapter.
+@export var start_chapter: String = ""
+## When off, the engine neither advances to the next chapter nor returns to the
+## title after a chapter or ending. It only emits chapter_finished / ending_reached.
+@export var return_to_title_on_finish: bool = true
 
 @export_group("Display")
 ## Resolution the engine UI is drawn for. The window is scaled to fit it.
@@ -43,6 +61,8 @@ var _engine_theme: Theme = null
 
 
 func _enter_tree() -> void:
+	if get_node_or_null("Systems") == null:
+		_build_tree()
 	if _current != null and is_instance_valid(_current) and _current != self:
 		push_warning("Another VNEngineMain is already running, freeing this one.")
 		_is_duplicate = true
@@ -52,6 +72,54 @@ func _enter_tree() -> void:
 	_apply_window_scaling()
 	VNEnginePaths.set_content_root(content_root)
 	VNEngineLog.verbose = verbose_log
+
+
+func _build_tree() -> void:
+	_add_layer("ScreenLayer", 0)
+	_add_layer("OverlayLayer", 100)
+	var transition_layer_node: CanvasLayer = _add_layer("TransitionLayer", 200)
+	var material := ShaderMaterial.new()
+	material.shader = TRANSITION_SHADER
+	material.set_shader_parameter("kind", 0)
+	material.set_shader_parameter("progress", 0.0)
+	material.set_shader_parameter("color", Color(0, 0, 0, 1))
+	var transition_overlay := ColorRect.new()
+	transition_overlay.name = "TransitionOverlay"
+	transition_overlay.set_script(TRANSITION_PLAYER_SCRIPT)
+	transition_overlay.material = material
+	transition_overlay.anchor_right = 1.0
+	transition_overlay.anchor_bottom = 1.0
+	transition_overlay.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	transition_overlay.grow_vertical = Control.GROW_DIRECTION_BOTH
+	transition_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	transition_overlay.color = Color(0, 0, 0, 0)
+	transition_layer_node.add_child(transition_overlay)
+	var system_layer_node: CanvasLayer = _add_layer("SystemLayer", 300)
+	var card_overlay: Node = CARD_OVERLAY_SCENE.instantiate()
+	card_overlay.name = "CardOverlay"
+	system_layer_node.add_child(card_overlay)
+	var systems_node := Node.new()
+	systems_node.name = "Systems"
+	add_child(systems_node)
+	var game_node := Node.new()
+	game_node.name = "Game"
+	game_node.set_script(GAME_SCRIPT)
+	systems_node.add_child(game_node)
+	var audio_node: Node = AUDIO_SYSTEM_SCENE.instantiate()
+	audio_node.name = "PersistentAudio"
+	systems_node.add_child(audio_node)
+	var saves_node := Node.new()
+	saves_node.name = "Saves"
+	saves_node.set_script(SAVE_SYSTEM_SCRIPT)
+	systems_node.add_child(saves_node)
+
+
+func _add_layer(layer_name: String, layer_index: int) -> CanvasLayer:
+	var layer_node := CanvasLayer.new()
+	layer_node.name = layer_name
+	layer_node.layer = layer_index
+	add_child(layer_node)
+	return layer_node
 
 
 func _exit_tree() -> void:
@@ -142,6 +210,11 @@ func _ready() -> void:
 		dev_overlay.visible = false
 		system_layer.add_child(dev_overlay)
 	_game.start_engine()
+	_game.return_to_title_on_finish = return_to_title_on_finish
+	_game.chapter_finished.connect(chapter_finished.emit)
+	_game.ending_reached.connect(ending_reached.emit)
+	_game.returned_to_title.connect(returned_to_title.emit)
+	_game.quit_requested.connect(_on_game_quit_requested)
 	_save_data = VNEngineSaveData.new(resolve_path(save_folder))
 	_settings = VNEngineSettings.load_from(resolve_path(settings_file))
 	_settings.apply_all()
@@ -155,7 +228,25 @@ func _ready() -> void:
 	screen_stack = VNEngineScreenStack.new(screen_layer, ui.screens, engine_theme)
 	overlay_stack = VNEngineOverlayStack.new(overlay_layer, screen_stack, ui.overlays, engine_theme)
 
-	screen_stack.push_screen(_game.start_screen())
+	match start_mode:
+		"chapter":
+			_game.start_new_game(start_chapter)
+		"title":
+			screen_stack.push_screen(_game.start_screen(true))
+		_:
+			screen_stack.push_screen(_game.start_screen())
+
+
+func play_chapter(chapter_id: String) -> void:
+	_game.return_to_title_on_finish = return_to_title_on_finish
+	_game.start_new_game(chapter_id)
+
+
+func _on_game_quit_requested() -> void:
+	if quit_requested.get_connections().is_empty():
+		get_tree().quit()
+	else:
+		quit_requested.emit()
 
 
 func _unhandled_input(event: InputEvent) -> void:

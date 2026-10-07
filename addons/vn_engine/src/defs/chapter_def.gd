@@ -25,6 +25,9 @@ extends Resource
 ## Music asset id played on chapter start. Empty means leave the current
 ## music unchanged.
 @export var bgm: String = ""
+## Extra assets to preload on chapter start, each an asset id or a res://
+## path. Use for assets that scripts reference indirectly.
+@export var preload_assets: PackedStringArray = PackedStringArray()
 
 @export_group("Flow")
 ## If true, the game autosaves right when the player enters this chapter.

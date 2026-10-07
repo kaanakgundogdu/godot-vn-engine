@@ -29,8 +29,8 @@ editor.
 
 First, enable the plugin: **Project > Project Settings > Plugins**, turn
 on **VN Engine**. Your game will run in the editor without it, but when
-you export, the scenario `.txt` files will be missing and the game will
-show a "scenario file not found" error. So turn it on now and forget
+you export, the scenario files will be missing and the game will show a
+"scenario file not found" error. So turn it on now and forget
 about it.
 
 A game is a folder with the same shape as `sample_game/`:
@@ -46,26 +46,37 @@ The easiest start is to copy `sample_game/` and change it.
 There is no guide for the scenario syntax yet. Read
 `sample_game/scenario/chapter1/scenario1.txt`, it shows the basics.
 
-The engine runs inside one scene: `res://addons/vn_engine/src/flow/scenes/vn_main.tscn`.
-When this scene is in the tree, the engine works. When it is removed,
-the engine is gone. Don't edit this file directly, it belongs to the
-addon. Use one of these two ways instead.
+The engine runs inside one node: `VNEngineMain`. When this node is in
+the tree, the engine works. When it is removed, the engine is gone.
+You can add it in three ways.
 
 ### 1. The VN is the whole game
 
-Create a new scene from `vn_main.tscn` (**Scene > New Inherited Scene**),
-set `content_root` to your folder and make it your main scene. The demo
-scene `play_sample_game.tscn` is made this way.
+Create a new scene, add a `VNEngineMain` node as the root (**Add Node**,
+search "VNEngineMain"), set `content_root` to your folder and make it
+your main scene.
 
-### 2. Start it from code
+You can also make an inherited scene from
+`res://addons/vn_engine/src/flow/scenes/vn_main.tscn`
+(**Scene > New Inherited Scene**), it is the same thing. The demo scene
+`play_sample_game.tscn` is made this way. Don't edit `vn_main.tscn`
+directly, it belongs to the addon.
+
+### 2. The VN is one part of your game
+
+Add a `VNEngineMain` node to one of your own scenes, like any other node.
+Set `content_root`, and if you only want to play one chapter, set
+`start_mode` to `chapter`. See
+[Using the engine from code](#using-the-engine-from-code) for how to know
+when the chapter is over.
+
+### 3. Start it from code
 
 Set the values before you add the node to the tree:
 
 ```gdscript
-const VN_SCENE := preload("res://addons/vn_engine/src/flow/scenes/vn_main.tscn")
-
 func start_vn() -> void:
-	var vn: VNEngineMain = VN_SCENE.instantiate()
+	var vn := VNEngineMain.new()
 	vn.content_root = "res://my_game/"
 	add_child(vn)
 ```
@@ -78,6 +89,16 @@ as they are:
 - `save_folder`: where save slots go. Default: `user://vn_engine/{game_id}/saves/`
 - `settings_file`: player settings like volume, text speed and keys. Default: `user://vn_engine/{game_id}/settings.json`
 - `verbose_log`: extra logs in debug builds. Off by default.
+- `start_mode`: what the player sees first.
+  - `boot`: splash screens, then the title screen. This is the default.
+  - `title`: the title screen, no splash screens.
+  - `chapter`: goes right into a chapter, no title screen.
+- `start_chapter`: the chapter id for `start_mode = chapter`. Empty means
+  the first chapter in `game.tres`.
+- `return_to_title_on_finish`: on by default, the engine goes to the next
+  chapter or back to the title after a chapter or an ending. Turn it off
+  if the VN is one part of your game. Then the engine stops there and only
+  sends a signal, and you decide what happens next.
 - `design_resolution`: the resolution the UI is made for. Default: 1920x1080.
 - `manage_window_scaling`: scales the window to `design_resolution` while the VN runs. On by default.
 
@@ -119,7 +140,7 @@ config/
 | `game.tres` | `VNEngineGameManifest` | The main file. Game id, first chapter and links to all the lists. |
 | `boot/_boot.tres` | `VNEngineBootDef` | Optional. List of splash screens before the title. |
 | `boot/01_logo.tres` | `VNEngineBootScreenDef` | One splash screen: an image or a video, how long it stays, fade time. |
-| `chapters/chapter1.tres` | `VNEngineChapterDef` | One chapter: title, scenario file, intro, music, next chapter or branches. |
+| `chapters/chapter1.tres` | `VNEngineChapterDef` | One chapter: title, scenario file, intro, music, next chapter or branches, extra assets to preload. |
 | `characters/_characters.tres` | `VNEngineCast` | List of all characters. |
 | `characters/qaan.tres` | `VNEngineCastMember` | One character: id for scenarios, shown name, name color, default sprite. |
 | `flags/_flags.tres` | `VNEngineFlagList` | List of all flags (story variables). |
@@ -135,6 +156,16 @@ config/
 
 `sample_game/config/` is the simplest working set. It has no `boot`, `extras`
 or `ui` files, so these are not needed to start.
+
+### Preloading
+
+Before a chapter starts, the engine reads its scenario and loads the
+backgrounds, CGs, music and sprites it uses, so there is no small freeze
+in the middle of the chapter. If a chapter shows something that is not
+written in the scenario (for example an image you show from your own
+code), add it to `preload_assets` in the chapter file. You can write an
+asset id like in scenarios (`room_night`) or a full path
+(`res://my_game/assets/...`).
 
 
 ## Using the engine from code
@@ -153,33 +184,67 @@ While the VN is running, you can reach its parts from anywhere with
 They are loaded when the VN starts and written to disk when it closes.
 When no VN is running, they return `null`.
 
-For example, if the VN is only one part of your game, you probably don't
-want "Quit" to close everything. If you connect to `quit_requested`,
-the engine doesn't quit and lets you decide:
+### Signals
 
-```gdscript
-func start_vn() -> void:
-	var vn: VNEngineMain = VN_SCENE.instantiate()
-	vn.content_root = "res://my_game/"
-	add_child(vn)
-	VNEngineMain.game().quit_requested.connect(_on_vn_quit)
+`VNEngineMain` sends these signals, so you can connect them in the
+editor (Node dock) or from code:
 
-func _on_vn_quit() -> void:
-	VNEngineMain.instance().queue_free()
-	# back to your own menu here
-```
+- `chapter_finished(chapter_id)`: a chapter is over.
+- `ending_reached(ending_id)`: the player reached an ending.
+- `returned_to_title`: the player went back to the title screen.
+- `quit_requested`: the player pressed "Quit".
+
+If nothing is connected to `quit_requested`, the engine closes the game.
+If you connect to it, the engine doesn't quit and lets you decide.
 
 Other signals you may need: `saved(slot_id)` and `loaded(slot_id)` on
-`saves()`, `returned_to_title` on `game()` and `global_changed` on
-`save_data()`.
+`saves()`, and `global_changed` on `save_data()`.
+
+### Play one chapter
+
+If the VN is only one part of your game, you probably want to play a
+chapter, get a signal when it ends and go back to your own game:
+
+```gdscript
+func talk_to_shopkeeper() -> void:
+	var vn := VNEngineMain.new()
+	vn.content_root = "res://my_game/"
+	vn.start_mode = "chapter"
+	vn.start_chapter = "shop_talk"
+	vn.return_to_title_on_finish = false
+	vn.chapter_finished.connect(_on_talk_finished.bind(vn), CONNECT_ONE_SHOT)
+	add_child(vn)
+
+func _on_talk_finished(chapter_id: String, vn: VNEngineMain) -> void:
+	vn.queue_free()
+	# back to your own game here
+```
+
+If the node is already running, `play_chapter("chapter_id")` starts
+another chapter in it.
+
+The ending records (seen endings, unlocked CGs) are still saved in this
+mode, only the screens after the ending are not shown.
 
 ## Export
 
 Things to know before you export:
 
-- **The plugin must be enabled.** The engine packs the scenario `.txt`
-  files into the `.pck` during export. If the plugin is off, they are
-  left out and the game shows a "scenario file not found" error.
+- **The plugin must be enabled.** During export the engine turns every
+  scenario `.txt` file into a binary file and puts that into the `.pck`
+  instead of the text. In the editor nothing changes, you keep writing
+  `.txt` files. If the plugin is off, the scenarios are left out and the
+  game shows a "scenario file not found" error.
+- **Scenario files are hidden, not locked.** The player can't open the
+  scenario as text, but a person who really wants to can still read the
+  `.pck` with some tools. If you want more, Godot can encrypt the `.pck`,
+  but you need to build your own export templates with a key for that
+  (see "Compiling with PCK encryption key" in the Godot docs). No method
+  is fully safe.
+- **Save folder.** By default saves go to
+  `AppData/Roaming/Godot/app_userdata/<project name>/vn_engine/` on
+  Windows. If you want a folder with your game's name, turn on
+  **Project Settings > Application > Config > Use Custom User Dir**.
 - **`sample_game/` is left out of release builds**, unless your main
   scene is inside it. So it doesn't make your game bigger. Debug builds
   still have it.
