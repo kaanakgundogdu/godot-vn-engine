@@ -174,6 +174,12 @@ func play_node(index: int) -> void:
 
 	_consecutive_logic_count = 0
 
+	if node.expression != "" and ctx.characters != null and state.characters.has(node.speaker_id):
+		var shown: Variant = state.characters[node.speaker_id]
+		if typeof(shown) == TYPE_DICTIONARY:
+			ctx.characters.show_character(node.speaker_id, shown.get("outfit", ""), shown.get("pose", ""), node.expression, shown.get("shot", ""), "", "")
+			shown["expression"] = node.expression
+
 	if node.speaker_id != "":
 		state.last_speaker = node.speaker_id
 

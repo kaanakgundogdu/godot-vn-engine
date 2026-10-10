@@ -27,8 +27,11 @@ func run(ctx: VNEngineAssetLintContext) -> void:
 
 		for file in ctx.walk_files(root):
 			var basename: String = file["basename"]
+			var extension: String = "." + basename.get_extension().to_lower()
+			if not entry.extensions.is_empty() and not entry.extensions.has(extension):
+				continue
 
-			if rx.search(basename) == null:
+			if rx.search(basename.get_basename()) == null:
 				ctx.error("`%s%s` (%s) does not match the naming pattern for its kind" % [root, file["rel_path"], entry.kind])
 				continue
 

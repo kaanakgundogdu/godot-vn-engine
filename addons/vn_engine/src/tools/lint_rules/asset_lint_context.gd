@@ -98,25 +98,25 @@ func kind_root_exists(kind: String) -> bool:
 
 func _compile_patterns() -> void:
 	rx_bg = RegEx.new()
-	rx_bg.compile("^bg_[a-z][a-z0-9]*(_[a-z][a-z0-9]*)*\\.(png|webp)$")
+	rx_bg.compile("^bg_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
 	rx_cg = RegEx.new()
-	rx_cg.compile("^cg_[a-z][a-z0-9]*(_[a-z][a-z0-9]*)*_[0-9]{2,}(_[a-z][a-z0-9]*)?\\.(png|webp)$")
+	rx_cg.compile("^cg_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
 	rx_character = RegEx.new()
-	rx_character.compile("^[a-z][a-z0-9]*_[a-z][a-z0-9]*_[a-z][a-z0-9]*_[a-z][a-z0-9]*_(far|mid|close)\\.png$")
+	rx_character.compile("^[a-z][a-z0-9]*_[a-z][a-z0-9]*_[a-z][a-z0-9]*_[a-z][a-z0-9]*_(far|mid|close)$")
 
 	rx_music = RegEx.new()
-	rx_music.compile("^bgm_[a-z][a-z0-9]*(_[a-z][a-z0-9]*)*\\.ogg$")
+	rx_music.compile("^bgm_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
 	rx_sfx = RegEx.new()
-	rx_sfx.compile("^sfx_[a-z][a-z0-9]*_[a-z][a-z0-9]*\\.(wav|ogg)$")
+	rx_sfx.compile("^sfx_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
 	rx_ui = RegEx.new()
-	rx_ui.compile("^ui_[a-z][a-z0-9]*_[a-z][a-z0-9]*(_[a-z][a-z0-9]*)?\\.png$")
+	rx_ui.compile("^ui_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
 	rx_movie = RegEx.new()
-	rx_movie.compile("^(op|ed|ev)_[a-z][a-z0-9_]*\\.ogv$")
+	rx_movie.compile("^(op|ed|ev)_[a-z][a-z0-9_]*$")
 
 
 func _walk_files_rec(root: String, rel_dir: String, out: Array[Dictionary]) -> void:

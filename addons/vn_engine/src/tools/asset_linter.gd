@@ -25,6 +25,7 @@ func _run() -> void:
 		VNEngineDuplicateIdRule.new(),
 		VNEngineUnknownCommandRule.new(),
 		VNEngineMissingSpriteRule.new(),
+		VNEngineUnknownSpeakerRule.new(),
 	]
 
 	var sections: Array[String] = []
