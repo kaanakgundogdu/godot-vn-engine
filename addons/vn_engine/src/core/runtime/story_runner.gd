@@ -42,6 +42,8 @@ var _playtime_accum: float = 0.0
 
 var _jumped: bool = false
 
+var _advancing: bool = false
+
 var _consecutive_logic_count: int = 0
 
 var is_auto: bool = false
@@ -142,6 +144,7 @@ func play_node(index: int) -> void:
 		return
 
 	current_index = index
+	_advancing = false
 	pending_choice_timer = {}
 	var node: VNEngineStoryNode = script_res.nodes[index]
 
@@ -157,7 +160,7 @@ func play_node(index: int) -> void:
 
 	for entry in node.commands:
 		var cname: String = entry.get("name", "")
-		if DEFERRED_COMMANDS.has(cname):
+		if DEFERRED_COMMANDS.has(cname) or entry.get("after_line", false):
 			continue
 		bus.apply(cname, entry.get("args", ""), ctx)
 
@@ -215,7 +218,19 @@ func _trip_runaway_guard(node: VNEngineStoryNode) -> void:
 	push_error("StoryRunner: %s (%s)" % [message, state.current_file])
 	parse_diagnostics_ready.emit([VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.ERROR, node.line, message)])
 
+func _run_after_line_commands(node: VNEngineStoryNode) -> void:
+	for entry in node.commands:
+		var cname: String = entry.get("name", "")
+		if DEFERRED_COMMANDS.has(cname) or not entry.get("after_line", false):
+			continue
+		bus.apply(cname, entry.get("args", ""), ctx)
+
+	if bus.has_pending_block():
+		await bus.blocked_finished
+
 func next_node() -> void:
+	if _advancing:
+		return
 	if current_index < 0 or current_index >= script_res.nodes.size():
 		return
 
@@ -223,6 +238,12 @@ func next_node() -> void:
 
 	if not current_node.choices.is_empty():
 		return
+
+	_advancing = true
+	await _run_after_line_commands(current_node)
+	if not _advancing:
+		return
+	_advancing = false
 
 	_jumped = false
 	for entry in current_node.commands:
@@ -238,6 +259,15 @@ func next_node() -> void:
 		end_story(EndReason.SCRIPT_EXHAUSTED)
 
 func make_choice(target_index: int) -> void:
+	if _advancing:
+		return
+	var current_node: VNEngineStoryNode = get_current_node()
+	if current_node != null:
+		_advancing = true
+		await _run_after_line_commands(current_node)
+		if not _advancing:
+			return
+		_advancing = false
 	play_node(target_index)
 
 func get_current_node() -> VNEngineStoryNode:
@@ -250,6 +280,7 @@ func execute_load_game(slot_id: int = 0) -> void:
 
 	if loaded_data != null:
 		state.from_dict(loaded_data)
+		_advancing = false
 		_ended = false
 		end_reason = EndReason.SCRIPT_EXHAUSTED
 		end_ending_id = ""
@@ -294,6 +325,7 @@ func _apply_history_entry(entry: Dictionary) -> void:
 	var target_history_len: int = entry.get("history_len", state.history.size())
 
 	state.from_dict(snapshot)
+	_advancing = false
 
 	if target_history_len < state.history.size():
 		state.history.resize(target_history_len)

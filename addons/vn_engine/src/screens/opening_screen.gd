@@ -15,9 +15,20 @@ var _waiting_for_input: bool = false
 @onready var boot_background: ColorRect = %BootBackground
 @onready var boot_image: TextureRect = %BootImage
 
+var _boot_text: Label = null
+
 
 func _ready() -> void:
 	video_player.finished.connect(_on_video_finished)
+	_boot_text = Label.new()
+	_boot_text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 80)
+	_boot_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boot_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_boot_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_boot_text.add_theme_font_size_override("font_size", 36)
+	_boot_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boot_text.visible = false
+	add_child(_boot_text)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -96,6 +107,7 @@ func _skip_current_step() -> void:
 func _reset_step_visuals() -> void:
 	boot_background.visible = false
 	boot_image.visible = false
+	_boot_text.visible = false
 	video_player.visible = false
 	if video_player.is_playing():
 		video_player.stop()
@@ -130,18 +142,23 @@ func _start_screen(screen: VNEngineBootScreenDef, token: int) -> void:
 	if screen.image_path != "":
 		var texture: Texture2D = load(screen.image_path) as Texture2D
 		if texture != null:
-			_play_screen_image(texture, screen, token)
+			boot_image.texture = texture
+			_play_screen_fade(boot_image, screen, token)
 			return
 		VNEngineLog.warn("OpeningScreen", "image_path is not a Texture2D: '%s'" % screen.image_path)
 
-	VNEngineLog.warn("OpeningScreen", "Boot step has no usable movie or image, skipping")
+	if screen.text != "":
+		_boot_text.text = screen.text
+		_play_screen_fade(_boot_text, screen, token)
+		return
+
+	VNEngineLog.warn("OpeningScreen", "Boot step has no usable movie, image or text, skipping")
 	call_deferred("_advance_if_current", token)
 
 
-func _play_screen_image(texture: Texture2D, screen: VNEngineBootScreenDef, token: int) -> void:
-	boot_image.texture = texture
-	boot_image.modulate.a = 0.0
-	boot_image.visible = true
+func _play_screen_fade(item: CanvasItem, screen: VNEngineBootScreenDef, token: int) -> void:
+	item.modulate.a = 0.0
+	item.visible = true
 
 	var fade: float = maxf(screen.fade_time, 0.0)
 
@@ -149,16 +166,16 @@ func _play_screen_image(texture: Texture2D, screen: VNEngineBootScreenDef, token
 		_current_skippable = false
 		_waiting_for_input = true
 		_tween = create_tween()
-		_tween.tween_property(boot_image, "modulate:a", 1.0, fade)
+		_tween.tween_property(item, "modulate:a", 1.0, fade)
 		return
 
 	var total: float = maxf(screen.duration, fade * 2.0 + 0.1)
 	var hold: float = total - fade * 2.0
 
 	_tween = create_tween()
-	_tween.tween_property(boot_image, "modulate:a", 1.0, fade)
+	_tween.tween_property(item, "modulate:a", 1.0, fade)
 	_tween.tween_interval(hold)
-	_tween.tween_property(boot_image, "modulate:a", 0.0, fade)
+	_tween.tween_property(item, "modulate:a", 0.0, fade)
 	_tween.tween_callback(_advance_if_current.bind(token))
 
 

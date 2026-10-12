@@ -244,20 +244,28 @@ static func _lint_show_before_speak(script: VNEngineStoryScript) -> void:
 
 	for node in script.nodes:
 		for cmd in node.commands:
-			var cname: String = cmd.get("name", "")
-			var cargs: String = cmd.get("args", "")
-			if cname == "show":
-				var show_tokens: PackedStringArray = cargs.split(" ", false)
-				if show_tokens.size() > 0:
-					shown[show_tokens[0].to_lower()] = true
-			elif cname == "hide" or cname == "leave":
-				var hide_tokens: PackedStringArray = cargs.split(" ", false)
-				if hide_tokens.size() > 0:
-					shown.erase(hide_tokens[0].to_lower())
+			if not cmd.get("after_line", false):
+				_track_shown(cmd, shown)
 
 		if node.speaker_id != "" and node.speaker_id != "narrator" and not shown.has(node.speaker_id) and not warned.has(node.speaker_id):
 			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.INFO, node.line, "'%s' speaks with no sprite on screen" % node.speaker_id))
 			warned[node.speaker_id] = true
+
+		for cmd in node.commands:
+			if cmd.get("after_line", false):
+				_track_shown(cmd, shown)
+
+
+static func _track_shown(cmd: Dictionary, shown: Dictionary) -> void:
+	var cname: String = cmd.get("name", "")
+	var cargs: String = cmd.get("args", "")
+	var tokens: PackedStringArray = cargs.split(" ", false)
+	if tokens.is_empty():
+		return
+	if cname == "show":
+		shown[tokens[0].to_lower()] = true
+	elif cname == "hide" or cname == "leave":
+		shown.erase(tokens[0].to_lower())
 
 
 static func _suggest(name: String) -> String:

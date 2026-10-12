@@ -31,15 +31,25 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 	if shot == "" and entry:
 		shot = entry.default_shot
 
+	var layer_position: String = position
 	if position == "":
-		position = "center"
+		var previous: Variant = ctx.state.characters.get(id)
+		if previous is Dictionary:
+			position = str(previous.get("position", "center"))
+			if ctx.characters and ctx.characters.active_sprites.has(id):
+				layer_position = ""
+			else:
+				layer_position = position
+		else:
+			position = "center"
+			layer_position = "center"
 	if transition == "":
 		transition = "fade"
 
 	ctx.state.characters[id] = {"expression": expression, "position": position, "outfit": outfit, "pose": pose, "shot": shot}
 
 	if ctx.characters:
-		ctx.characters.show_character(id, outfit, pose, expression, shot, position, transition)
+		ctx.characters.show_character(id, outfit, pose, expression, shot, layer_position, transition)
 
 
 static func parse_show_args(args: String) -> Dictionary:

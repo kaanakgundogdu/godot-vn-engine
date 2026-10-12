@@ -48,7 +48,7 @@ static func parse_text(text: String, source_name: String = "<memory>", flag_list
 			continue
 
 		if line.begins_with("@"):
-			_parse_command(line, line_no, current_node)
+			_parse_command(line, line_no, current_node, dialog_seen)
 			continue
 
 		if line.begins_with("-"):
@@ -120,7 +120,7 @@ static func _register_label(script: VNEngineStoryScript, name: String, idx: int,
 		return
 	script.labels[name] = idx
 
-static func _parse_command(line: String, line_no: int, node: VNEngineStoryNode) -> void:
+static func _parse_command(line: String, line_no: int, node: VNEngineStoryNode, dialog_seen: Dictionary) -> void:
 	var body: String = line.substr(1)
 	var space_idx: int = body.find(" ")
 	var cmd_name: String = ""
@@ -130,7 +130,8 @@ static func _parse_command(line: String, line_no: int, node: VNEngineStoryNode) 
 	else:
 		cmd_name = body.substr(0, space_idx).strip_edges()
 		cmd_args = body.substr(space_idx + 1).strip_edges()
-	node.commands.append({"name": cmd_name, "args": cmd_args, "line": line_no})
+	var after_line: bool = dialog_seen.has(node) and cmd_name != "choice_timer"
+	node.commands.append({"name": cmd_name, "args": cmd_args, "line": line_no, "after_line": after_line})
 
 static func _parse_choice(line: String, line_no: int, node: VNEngineStoryNode, script: VNEngineStoryScript) -> void:
 	var body: String = line.substr(1).strip_edges()

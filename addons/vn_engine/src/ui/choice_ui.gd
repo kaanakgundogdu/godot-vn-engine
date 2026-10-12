@@ -6,8 +6,8 @@ extends Control
 
 var _choice_timer: Timer = null
 var _choice_timer_target: VNEngineChoiceOption = null
-var _choice_timer_bar: ProgressBar = null
-var _choice_timer_label: Label = null
+var _timer_dial: VNEngineChoiceTimerDial = null
+var _choice_timer_waiting: bool = false
 
 
 func _ready() -> void:
@@ -19,28 +19,18 @@ func _ready() -> void:
 
 	_choice_timer = Timer.new()
 	_choice_timer.one_shot = true
-	add_child(_choice_timer)
+	add_child(_choice_timer, false, Node.INTERNAL_MODE_FRONT)
 	_choice_timer.timeout.connect(_on_choice_timer_timeout)
 
-	var timer_bar_node: Node = get_node_or_null("%ChoiceTimerBar")
-	_choice_timer_bar = timer_bar_node as ProgressBar
-	var timer_label_node: Node = get_node_or_null("%ChoiceTimerLabel")
-	_choice_timer_label = timer_label_node as Label
-	if _choice_timer_bar:
-		_choice_timer_bar.step = 0.01
-		_choice_timer_bar.hide()
-	if _choice_timer_label:
-		_choice_timer_label.hide()
+	_timer_dial = VNEngineChoiceTimerDial.new()
+	_timer_dial.hide()
+	add_child(_timer_dial, false, Node.INTERNAL_MODE_FRONT)
 
 
 func _process(_delta: float) -> void:
 	if _choice_timer == null or _choice_timer.is_stopped():
 		return
-	var remaining: float = _choice_timer.time_left
-	if _choice_timer_label:
-		_choice_timer_label.text = "%.1f" % remaining
-	if _choice_timer_bar:
-		_choice_timer_bar.value = remaining
+	_timer_dial.set_time(_choice_timer.time_left, _choice_timer.wait_time)
 
 
 func _on_state_restored(_state: VNEngineStoryState) -> void:
@@ -110,15 +100,17 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 
 		_choice_timer_target = visible_choices[default_index]
 		_choice_timer.wait_time = timer_seconds
-		_choice_timer.start()
 
-		if _choice_timer_bar:
-			_choice_timer_bar.max_value = timer_seconds
-			_choice_timer_bar.value = timer_seconds
-			_choice_timer_bar.show()
-		if _choice_timer_label:
-			_choice_timer_label.text = "%.1f" % timer_seconds
-			_choice_timer_label.show()
+		var dialog: VNEngineDialogUI = runner.ctx.dialog_ui if runner != null and runner.ctx != null else null
+		if dialog != null and dialog.is_typing() and not runner.is_skip:
+			_choice_timer_waiting = true
+			if not dialog.line_revealed.is_connected(_on_line_revealed):
+				dialog.line_revealed.connect(_on_line_revealed)
+		else:
+			_choice_timer.start()
+
+		_timer_dial.set_time(timer_seconds, timer_seconds)
+		_timer_dial.show()
 
 	await get_tree().process_frame
 	for label in created_labels:
@@ -140,14 +132,19 @@ func _on_button_pressed(choice: VNEngineChoiceOption) -> void:
 		runner.make_choice(choice.target_index)
 
 
+func _on_line_revealed() -> void:
+	if not _choice_timer_waiting:
+		return
+	_choice_timer_waiting = false
+	_choice_timer.start()
+
+
 func _clear_buttons() -> void:
+	_choice_timer_waiting = false
 	if _choice_timer:
 		_choice_timer.stop()
 	_choice_timer_target = null
-	if _choice_timer_bar:
-		_choice_timer_bar.hide()
-	if _choice_timer_label:
-		_choice_timer_label.hide()
+	_timer_dial.hide()
 	for child in button_container.get_children():
 		child.queue_free()
 

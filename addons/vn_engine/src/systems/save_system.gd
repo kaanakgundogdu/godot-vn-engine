@@ -8,7 +8,9 @@ signal loaded(slot_id: int)
 func save_game(state: VNEngineStoryState, slot_id: int) -> bool:
 	var data: VNEngineSaveData = VNEngineMain.save_data()
 	var save_path: String = data.slot_path(slot_id)
-	var image: Image = get_viewport().get_texture().get_image()
+	var image: Image = null
+	if DisplayServer.get_name() != "headless":
+		image = get_viewport().get_texture().get_image()
 
 	if image != null:
 		image.resize(256, 144)

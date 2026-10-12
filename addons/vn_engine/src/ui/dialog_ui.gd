@@ -1,6 +1,8 @@
 class_name VNEngineDialogUI
 extends Control
 
+signal line_revealed
+
 const NAME_COLOR_FALLBACK: Color = Color.WHITE
 
 @export var runner: VNEngineStoryRunner
@@ -321,7 +323,12 @@ func _apply_name_plate_style(name_color: Color) -> void:
 	_name_plate_style.border_color = name_color
 
 
+func is_typing() -> bool:
+	return _text_tween != null and _text_tween.is_valid() and _text_tween.is_running()
+
+
 func _on_text_finished() -> void:
+	line_revealed.emit()
 	var current_node := runner.get_current_node()
 	if current_node != null and not current_node.choices.is_empty():
 		runner.is_auto = false

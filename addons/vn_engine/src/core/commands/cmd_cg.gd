@@ -14,7 +14,13 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 	var transition := "fade"
 	var duration := -1.0
 
+	var keep := false
+
 	var i := 1
+	if i < tokens.size() and tokens[i] == "keep":
+		keep = true
+		i += 1
+
 	if i < tokens.size() and tokens[i] == "with" and i + 1 < tokens.size():
 		transition = tokens[i + 1]
 		i += 2
@@ -25,7 +31,7 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 	VNEngineMain.save_data().unlock_cg(cg_id)
 	ctx.state.cg = cg_id
 
-	if ctx.characters:
+	if ctx.characters and not keep:
 		var active_ids: Array = ctx.characters.active_sprites.keys().duplicate()
 		for char_id in active_ids:
 			ctx.characters.hide_character(char_id, transition)
