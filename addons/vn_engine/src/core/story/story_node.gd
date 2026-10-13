@@ -3,6 +3,8 @@ class_name VNEngineStoryNode
 
 
 @export var id: String = ""
+@export var base_id: String = ""
+@export var line_index: int = 0
 @export var line_id: String = ""
 @export var line: int = 0
 @export var speaker_id: String = ""

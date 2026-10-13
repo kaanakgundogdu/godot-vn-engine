@@ -61,22 +61,16 @@ Qaan: These are just old observation logs, nothing new. This choice was not clic
 @jump chapter_end
 
 # chapter_end
-@jump_if warmth >= 3 -> chapter_end_warm
-@jump_if warmth >= 1 -> chapter_end_mid
-@jump chapter_end_plain
-
-# chapter_end_warm
+@if warmth >= 3
 Narrator: Qaan waves warmly. You've now seen speaker colors, choices, @flag, @set_var, and @call/@return.
-@jump bridge
-
-# chapter_end_mid
+@elif warmth >= 1
 Narrator: Qaan gives a friendly nod. You've seen the basics: choices, flags, and a call/return aside.
-@jump bridge
-
-# chapter_end_plain
+@else
 Narrator: Qaan shrugs. A quick visit, a quick tour. Chapter two is next either way.
-@jump bridge
+@endif
 
 # bridge
 @bg bg_dusk with fade 1.2
-Qaan: That's chapter one. See you in chapter two.
+Qaan: That's chapter one.
+Qaan: This node has three lines. Each click shows the next one.
+Qaan: See you in chapter two.

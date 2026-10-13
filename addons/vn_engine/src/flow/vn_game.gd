@@ -215,6 +215,9 @@ func goto_chapter(chapter_id: String) -> void:
 	var stage: VNEngineStageScreen = _current_stage_screen()
 	if stage != null:
 		resume_state = stage.story_runner.state.to_dict(true)
+		resume_state["characters"] = {}
+		resume_state["bg"] = ""
+		resume_state["cg"] = ""
 
 	pending_load_slot = -1
 	call_deferred("_enter_chapter_via_loading", chapter, resume_state)

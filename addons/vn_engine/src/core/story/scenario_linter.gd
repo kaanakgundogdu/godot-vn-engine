@@ -55,7 +55,7 @@ static func lint_expressions(script: VNEngineStoryScript) -> void:
 	for node in script.nodes:
 		for cmd in node.commands:
 			if cmd.get("name", "") == "jump_if":
-				var condition: String = _extract_jump_if_condition(cmd.get("args", ""))
+				var condition: String = _jump_if_condition(cmd)
 				if condition != "":
 					_validate_expression(condition, cmd.get("line", 0), script)
 		for choice in node.choices:
@@ -75,7 +75,7 @@ static func lint_flags(script: VNEngineStoryScript, flag_list: VNEngineFlagList)
 				if tokens.size() >= 1:
 					_check_flag_id(tokens[0], cmd.get("line", 0), script, flag_list)
 			elif cname == "jump_if":
-				var condition: String = _extract_jump_if_condition(cmd.get("args", ""))
+				var condition: String = _jump_if_condition(cmd)
 				if condition != "":
 					_lint_expression_flags(condition, cmd.get("line", 0), script, flag_list)
 
@@ -273,6 +273,12 @@ static func _suggest(name: String) -> String:
 		if name.begins_with(known) or known.begins_with(name):
 			return "suggestion: '@%s'" % known
 	return ""
+
+
+static func _jump_if_condition(cmd: Dictionary) -> String:
+	if cmd.has("cond"):
+		return String(cmd["cond"])
+	return _extract_jump_if_condition(cmd.get("args", ""))
 
 
 static func _extract_jump_if_condition(args: String) -> String:

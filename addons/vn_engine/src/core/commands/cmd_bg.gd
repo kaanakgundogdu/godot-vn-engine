@@ -23,6 +23,7 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 		duration = tokens[i].to_float()
 
 	ctx.state.bg = bg_name
+	ctx.state.cg = ""
 
 	if ctx.background:
 		ctx.background.change_to(bg_name, transition, duration)

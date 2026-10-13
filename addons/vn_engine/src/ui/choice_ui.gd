@@ -51,7 +51,6 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		vars = runner.state.flags
 
 	var created_labels: Array[RichTextLabel] = []
-	var visible_choices: Array[VNEngineChoiceOption] = []
 
 	var box_width: float = 1100.0
 	if button_container:
@@ -59,14 +58,6 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 	var content_width := maxf(box_width - 32.0, 10.0)
 
 	for choice in choices:
-		if choice.once and runner and runner.state and runner.state.seen_choices.has(_choice_key(choice)):
-			continue
-
-		if choice.condition != "" and not VNEngineExpressionEvaluator.evaluate(choice.condition, vars):
-			continue
-
-		visible_choices.append(choice)
-
 		var btn := Button.new()
 		btn.text = ""
 		btn.custom_minimum_size.y = 72
@@ -91,14 +82,14 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		btn.pressed.connect(_on_button_pressed.bind(choice))
 		button_container.add_child(btn)
 
-	if not choice_timer_data.is_empty() and not visible_choices.is_empty():
+	if not choice_timer_data.is_empty() and not choices.is_empty():
 		var timer_seconds: float = float(choice_timer_data.get("seconds", 0.0))
 		var default_index: int = int(choice_timer_data.get("default_index", 0))
-		if default_index < 0 or default_index >= visible_choices.size():
+		if default_index < 0 or default_index >= choices.size():
 			VNEngineLog.warn("ChoiceUI", "'@choice_timer' default_index (%d) is out of range, clamping to the last choice" % default_index)
-			default_index = visible_choices.size() - 1
+			default_index = choices.size() - 1
 
-		_choice_timer_target = visible_choices[default_index]
+		_choice_timer_target = choices[default_index]
 		_choice_timer.wait_time = timer_seconds
 
 		var dialog: VNEngineDialogUI = runner.ctx.dialog_ui if runner != null and runner.ctx != null else null
@@ -126,7 +117,7 @@ func _on_button_pressed(choice: VNEngineChoiceOption) -> void:
 	_clear_buttons()
 
 	if choice.once and runner and runner.state:
-		runner.state.seen_choices[_choice_key(choice)] = true
+		runner.state.seen_choices[runner.choice_key(choice)] = true
 
 	if runner:
 		runner.make_choice(choice.target_index)
@@ -147,13 +138,6 @@ func _clear_buttons() -> void:
 	_timer_dial.hide()
 	for child in button_container.get_children():
 		child.queue_free()
-
-
-func _choice_key(choice: VNEngineChoiceOption) -> String:
-	var file := ""
-	if runner and runner.state:
-		file = runner.state.current_file
-	return "%s:%d" % [file, choice.line]
 
 
 func _on_choice_timer_timeout() -> void:

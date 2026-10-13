@@ -82,7 +82,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	show()
 	_hide_continue_indicator()
 
-	if node.text == "" and not node.choices.is_empty():
+	if node.text == "" and not runner.current_choices.is_empty():
 		_show_choice_prompt()
 		return
 
@@ -248,7 +248,7 @@ func _gui_input(event: InputEvent) -> void:
 func _maybe_play_auto_voice(node: VNEngineStoryNode) -> void:
 	var has_manual_voice: bool = false
 	for cmd in node.commands:
-		if String(cmd.get("name", "")) == "voice":
+		if String(cmd.get("name", "")) == "voice" and not cmd.get("after_line", false):
 			has_manual_voice = true
 			break
 
@@ -329,8 +329,7 @@ func is_typing() -> bool:
 
 func _on_text_finished() -> void:
 	line_revealed.emit()
-	var current_node := runner.get_current_node()
-	if current_node != null and not current_node.choices.is_empty():
+	if not runner.current_choices.is_empty():
 		runner.is_auto = false
 		runner.is_skip = false
 		runner.mode_changed.emit()
@@ -372,7 +371,7 @@ func _on_mode_changed() -> void:
 	if _text_tween != null and _text_tween.is_valid() and _text_tween.is_running():
 		return
 	var current_node := runner.get_current_node()
-	if current_node != null and current_node.choices.is_empty():
+	if current_node != null and runner.current_choices.is_empty():
 		if runner.is_auto or runner.is_skip:
 			auto_timer.stop()
 			runner.next_node()

@@ -52,6 +52,8 @@ var is_input_locked: bool = false
 
 var pending_choice_timer: Dictionary = {}
 
+var current_choices: Array[VNEngineChoiceOption] = []
+
 const RUNAWAY_LIMIT := 256
 
 const DEFERRED_COMMANDS := ["jump", "jump_if", "call", "return", "scene", "end", "goto_chapter", "credits"]
@@ -147,16 +149,18 @@ func play_node(index: int) -> void:
 	_advancing = false
 	pending_choice_timer = {}
 	var node: VNEngineStoryNode = script_res.nodes[index]
+	current_choices.assign(node.choices)
 
 	state.current_node_id = node.id
 
-	var is_seen: bool = VNEngineMain.save_data().is_line_seen(script_res.chapter_id, node.line_id)
+	if not node.is_pure_logic():
+		var is_seen: bool = VNEngineMain.save_data().is_line_seen(script_res.chapter_id, node.line_id)
 
-	if is_skip and not is_seen and not VNEngineMain.settings().skip_unread:
-		is_skip = false
-		mode_changed.emit()
+		if is_skip and not is_seen and not VNEngineMain.settings().skip_unread:
+			is_skip = false
+			mode_changed.emit()
 
-	VNEngineMain.save_data().mark_line_seen(script_res.chapter_id, node.line_id)
+		VNEngineMain.save_data().mark_line_seen(script_res.chapter_id, node.line_id)
 
 	for entry in node.commands:
 		var cname: String = entry.get("name", "")
@@ -167,7 +171,9 @@ func play_node(index: int) -> void:
 	if bus.has_pending_block():
 		await bus.blocked_finished
 
-	if node.is_pure_logic():
+	current_choices = _visible_choices(node)
+
+	if node.text == "" and current_choices.is_empty():
 		_consecutive_logic_count += 1
 		if _consecutive_logic_count > RUNAWAY_LIMIT:
 			_trip_runaway_guard(node)
@@ -201,8 +207,21 @@ func play_node(index: int) -> void:
 
 	dialog_started.emit(node)
 
-	if not node.choices.is_empty():
-		choices_requested.emit(node.choices)
+	if not current_choices.is_empty():
+		choices_requested.emit(current_choices)
+
+func choice_key(choice: VNEngineChoiceOption) -> String:
+	return "%s:%d" % [state.current_file, choice.line]
+
+func _visible_choices(node: VNEngineStoryNode) -> Array[VNEngineChoiceOption]:
+	var result: Array[VNEngineChoiceOption] = []
+	for choice in node.choices:
+		if choice.once and state.seen_choices.has(choice_key(choice)):
+			continue
+		if choice.condition != "" and not VNEngineExpressionEvaluator.evaluate(choice.condition, state.flags):
+			continue
+		result.append(choice)
+	return result
 
 func _trip_runaway_guard(node: VNEngineStoryNode) -> void:
 	if _ended:
@@ -236,7 +255,7 @@ func next_node() -> void:
 
 	var current_node: VNEngineStoryNode = script_res.nodes[current_index]
 
-	if not current_node.choices.is_empty():
+	if not current_choices.is_empty():
 		return
 
 	_advancing = true
@@ -304,9 +323,10 @@ func execute_load_game(slot_id: int = 0) -> void:
 		var node: VNEngineStoryNode = script_res.nodes[current_index]
 		VNEngineMain.save_data().mark_line_seen(script_res.chapter_id, node.line_id)
 
+		current_choices = _visible_choices(node)
 		dialog_started.emit(node)
-		if not node.choices.is_empty():
-			choices_requested.emit(node.choices)
+		if not current_choices.is_empty():
+			choices_requested.emit(current_choices)
 	else:
 		VNEngineLog.warn("StoryRunner", "No valid save file found in slot: %d" % slot_id)
 
@@ -356,7 +376,8 @@ func _apply_history_entry(entry: Dictionary) -> void:
 			"line_id": node.line_id,
 		})
 
+	current_choices = _visible_choices(node)
 	dialog_started.emit(node)
 
-	if not node.choices.is_empty():
-		choices_requested.emit(node.choices)
+	if not current_choices.is_empty():
+		choices_requested.emit(current_choices)

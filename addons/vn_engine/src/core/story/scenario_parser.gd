@@ -2,6 +2,20 @@ extends RefCounted
 class_name VNEngineScenarioParser
 
 
+const _TERMINAL_FLOW := ["jump", "end", "return", "goto_chapter"]
+
+
+class _Header:
+	var base_id: String = ""
+	var current: VNEngineStoryNode = null
+	var part_count: int = 1
+	var line_count: int = 0
+	var choices: Array[VNEngineChoiceOption] = []
+	var timers: Array[Dictionary] = []
+	var blocks: Array[Dictionary] = []
+	var moved_voices: Array[Dictionary] = []
+
+
 static func parse_file(path: String, flag_list: VNEngineFlagList = null) -> VNEngineStoryScript:
 	if not FileAccess.file_exists(path):
 		var missing: VNEngineStoryScript = VNEngineStoryScript.new()
@@ -25,8 +39,7 @@ static func parse_text(text: String, source_name: String = "<memory>", flag_list
 	script.source_path = source_name
 
 	var lines: PackedStringArray = text.split("\n")
-	var current_node: VNEngineStoryNode = null
-	var dialog_seen: Dictionary = {}
+	var header: _Header = null
 
 	for i in lines.size():
 		var line_no: int = i + 1
@@ -40,27 +53,31 @@ static func parse_text(text: String, source_name: String = "<memory>", flag_list
 		if line.begins_with("#"):
 			var node: VNEngineStoryNode = _parse_header(line, line_no, script)
 			if node != null:
-				current_node = node
+				_close_header(header, script)
+				header = _Header.new()
+				header.base_id = node.id
+				header.current = node
 			continue
 
-		if current_node == null:
+		if header == null:
 			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Content line before node header"))
 			continue
 
 		if line.begins_with("@"):
-			_parse_command(line, line_no, current_node, dialog_seen)
+			_parse_command(line, line_no, header, script)
 			continue
 
 		if line.begins_with("-"):
-			_parse_choice(line, line_no, current_node, script)
+			_parse_choice(line, line_no, header, script)
 			continue
 
 		if line.contains(":"):
-			_parse_dialog(line, line_no, current_node, script, dialog_seen)
+			_parse_dialog(line, line_no, header, script)
 			continue
 
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Unrecognized line: '%s'" % line))
 
+	_close_header(header, script)
 	_finalize_flow(script)
 	VNEngineScenarioLinter.lint(script)
 	VNEngineScenarioLinter.lint_expressions(script)
@@ -94,6 +111,9 @@ static func _parse_header(line: String, line_no: int, script: VNEngineStoryScrip
 	if primary_label.contains(" "):
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Node id contains whitespace: '%s'" % primary_label))
 
+	if primary_label.contains("~") or alias_label.contains("~"):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Node id cannot contain '~'"))
+
 	if has_alias_separator and alias_label == "":
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Empty alias after '|', node will only have id '%s'" % primary_label))
 	elif alias_label.contains(" "):
@@ -102,6 +122,7 @@ static func _parse_header(line: String, line_no: int, script: VNEngineStoryScrip
 	var node: VNEngineStoryNode = VNEngineStoryNode.new()
 	node.line = line_no
 	node.id = primary_label
+	node.base_id = primary_label
 	script.nodes.append(node)
 	var idx: int = script.nodes.size() - 1
 
@@ -120,7 +141,7 @@ static func _register_label(script: VNEngineStoryScript, name: String, idx: int,
 		return
 	script.labels[name] = idx
 
-static func _parse_command(line: String, line_no: int, node: VNEngineStoryNode, dialog_seen: Dictionary) -> void:
+static func _parse_command(line: String, line_no: int, header: _Header, script: VNEngineStoryScript) -> void:
 	var body: String = line.substr(1)
 	var space_idx: int = body.find(" ")
 	var cmd_name: String = ""
@@ -130,10 +151,137 @@ static func _parse_command(line: String, line_no: int, node: VNEngineStoryNode, 
 	else:
 		cmd_name = body.substr(0, space_idx).strip_edges()
 		cmd_args = body.substr(space_idx + 1).strip_edges()
-	var after_line: bool = dialog_seen.has(node) and cmd_name != "choice_timer"
-	node.commands.append({"name": cmd_name, "args": cmd_args, "line": line_no, "after_line": after_line})
 
-static func _parse_choice(line: String, line_no: int, node: VNEngineStoryNode, script: VNEngineStoryScript) -> void:
+	if ["if", "elif", "else", "endif"].has(cmd_name):
+		_parse_block(cmd_name, cmd_args, line_no, header, script)
+		return
+
+	if cmd_name == "choice_timer":
+		if not header.blocks.is_empty():
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@choice_timer' cannot be inside '@if'"))
+			return
+		header.timers.append({"name": cmd_name, "args": cmd_args, "line": line_no, "after_line": false})
+		return
+
+	var entry: Dictionary = {"name": cmd_name, "args": cmd_args, "line": line_no, "after_line": header.current.line_index > 0}
+	header.current.commands.append(entry)
+	if cmd_name == "voice" and entry["after_line"]:
+		header.moved_voices.append({"entry": entry, "part": header.current})
+
+static func _parse_block(block_name: String, args: String, line_no: int, header: _Header, script: VNEngineStoryScript) -> void:
+	header.moved_voices.clear()
+
+	if block_name == "if":
+		var pending: Dictionary = {}
+		if args == "":
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@if' expects a condition"))
+		else:
+			pending = _add_flow(header, script, "jump_if", args, line_no)
+		header.blocks.append({"line": line_no, "pending": pending, "ends": [], "else_line": 0})
+		_next_part(header, script, line_no)
+		return
+
+	if header.blocks.is_empty():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' without '@if'" % block_name))
+		return
+
+	var block: Dictionary = header.blocks.back()
+
+	if block_name == "endif":
+		header.blocks.pop_back()
+		var end_part: VNEngineStoryNode = _next_part(header, script, line_no)
+		_patch_flow(block["pending"], end_part.id)
+		for end_jump in block["ends"]:
+			_patch_flow(end_jump, end_part.id)
+		return
+
+	if int(block["else_line"]) > 0:
+		if block_name == "elif":
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@elif' after '@else'"))
+		else:
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@else' is already used at line %d" % int(block["else_line"])))
+		return
+
+	if not _has_terminal_flow(header.current):
+		block["ends"].append(_add_flow(header, script, "jump", "", line_no))
+
+	var branch_part: VNEngineStoryNode = _next_part(header, script, line_no)
+	_patch_flow(block["pending"], branch_part.id)
+	block["pending"] = {}
+
+	if block_name == "else":
+		block["else_line"] = line_no
+		return
+
+	if args == "":
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@elif' expects a condition"))
+		return
+	block["pending"] = _add_flow(header, script, "jump_if", args, line_no)
+	_next_part(header, script, line_no)
+
+static func _add_flow(header: _Header, script: VNEngineStoryScript, flow_name: String, cond: String, line_no: int) -> Dictionary:
+	if _has_call(header.current):
+		_next_part(header, script, line_no)
+	var entry: Dictionary = {"name": flow_name, "args": "", "line": line_no, "after_line": header.current.line_index > 0}
+	if flow_name == "jump_if":
+		entry["cond"] = cond
+	header.current.commands.append(entry)
+	return entry
+
+static func _patch_flow(entry: Dictionary, target: String) -> void:
+	if entry.is_empty():
+		return
+	if entry["name"] == "jump_if":
+		entry["args"] = "not (%s) -> %s" % [entry["cond"], target]
+	else:
+		entry["args"] = target
+
+static func _has_terminal_flow(part: VNEngineStoryNode) -> bool:
+	for entry in part.commands:
+		if _TERMINAL_FLOW.has(entry.get("name", "")):
+			return true
+	return false
+
+static func _has_call(part: VNEngineStoryNode) -> bool:
+	for entry in part.commands:
+		if entry.get("name", "") == "call":
+			return true
+	return false
+
+static func _next_part(header: _Header, script: VNEngineStoryScript, line_no: int) -> VNEngineStoryNode:
+	var current: VNEngineStoryNode = header.current
+	if current.line_index == 0 and current.commands.is_empty():
+		return current
+
+	header.part_count += 1
+	var part: VNEngineStoryNode = VNEngineStoryNode.new()
+	part.line = line_no
+	part.base_id = header.base_id
+	part.id = "%s~%d" % [header.base_id, header.part_count]
+	script.nodes.append(part)
+	script.labels[part.id] = script.nodes.size() - 1
+	header.current = part
+	return part
+
+static func _close_header(header: _Header, script: VNEngineStoryScript) -> void:
+	if header == null:
+		return
+
+	for block in header.blocks:
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, block["line"], "'@if' at line %d has no '@endif'" % int(block["line"])))
+		_patch_flow(block["pending"], header.current.id)
+		for end_jump in block["ends"]:
+			_patch_flow(end_jump, header.current.id)
+	header.blocks.clear()
+
+	header.current.choices.append_array(header.choices)
+	header.current.commands.append_array(header.timers)
+
+static func _parse_choice(line: String, line_no: int, header: _Header, script: VNEngineStoryScript) -> void:
+	if not header.blocks.is_empty():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Choices cannot be inside '@if', use 'if' on the choice"))
+		return
+
 	var body: String = line.substr(1).strip_edges()
 	var arrow: int = body.find("->")
 	if arrow == -1:
@@ -194,7 +342,7 @@ static func _parse_choice(line: String, line_no: int, node: VNEngineStoryNode, s
 	choice.disabled_if = disabled_if
 	choice.once = once
 	choice.line = line_no
-	node.choices.append(choice)
+	header.choices.append(choice)
 
 static func _find_next_keyword(text: String, keywords: Array) -> int:
 	var best: int = -1
@@ -212,11 +360,18 @@ static func _find_next_keyword(text: String, keywords: Array) -> int:
 			search_from = pos + 1
 	return best
 
-static func _parse_dialog(line: String, line_no: int, node: VNEngineStoryNode, script: VNEngineStoryScript, dialog_seen: Dictionary) -> void:
-	if dialog_seen.has(node):
-		var first_line: int = dialog_seen[node]
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "This node already has dialog at line %d" % first_line))
-		return
+static func _parse_dialog(line: String, line_no: int, header: _Header, script: VNEngineStoryScript) -> void:
+	var node: VNEngineStoryNode = header.current
+	if node.line_index > 0:
+		node = _next_part(header, script, line_no)
+		for moved in header.moved_voices:
+			moved["part"].commands.erase(moved["entry"])
+			moved["entry"]["after_line"] = false
+			node.commands.append(moved["entry"])
+		header.moved_voices.clear()
+
+	header.line_count += 1
+	node.line_index = header.line_count
 
 	var colon: int = line.find(":")
 	var speaker_info: String = line.substr(0, colon).strip_edges()
@@ -231,14 +386,12 @@ static func _parse_dialog(line: String, line_no: int, node: VNEngineStoryNode, s
 		node.expression = ""
 		node.animation = ""
 		node.text = _unescape_text(line)
-		dialog_seen[node] = line_no
 		return
 
 	node.speaker_id = speaker_id
 	node.expression = parsed["expression"]
 	node.animation = parsed["animation"]
 	node.text = _unescape_text(text_part)
-	dialog_seen[node] = line_no
 
 static func _parse_speaker_info(info: String) -> Dictionary:
 	var paren: Dictionary = _extract_bracketed(info, "(", ")")
@@ -301,7 +454,14 @@ static func _assign_line_ids(script: VNEngineStoryScript) -> void:
 	script.chapter_id = chapter_id
 
 	for node in script.nodes:
-		node.line_id = (chapter_id + "." + node.id) if chapter_id != "" else node.id
+		var local_id: String = node.id
+		if node.line_index > 0:
+			local_id = node.base_id
+			if node.line_index > 1:
+				local_id += "." + str(node.line_index)
+		node.line_id = (chapter_id + "." + local_id) if chapter_id != "" else local_id
+
+		var choice_base: String = (chapter_id + "." + node.base_id) if chapter_id != "" else node.base_id
 		for i in node.choices.size():
 			var choice: VNEngineChoiceOption = node.choices[i]
-			choice.line_id = node.line_id + ".c" + str(i + 1)
+			choice.line_id = choice_base + ".c" + str(i + 1)

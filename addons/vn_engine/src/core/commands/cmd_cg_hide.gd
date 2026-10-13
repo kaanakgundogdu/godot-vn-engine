@@ -16,6 +16,8 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 		else:
 			i += 1
 
+	ctx.state.cg = ""
+
 	if ctx.state.bg == "":
 		VNEngineLog.warn("CmdCgHide", "No background to return to: '@bg' was never called")
 		return
