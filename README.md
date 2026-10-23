@@ -1,5 +1,5 @@
 <p align="left">
-  <img src="readme_files/images/icons/cat_logo_mono_256.png" width="128" alt="VN Engine icon">
+  <img src="readme_files/images/icons/vn_icon_256.png" width="128" alt="VN Engine icon">
 </p>
 
 # VN Engine
@@ -8,7 +8,9 @@ A small visual novel engine for Godot 4.4. You write the story in plain text
 files, set up the game with `.tres` resources and run it inside one scene.
 
 Dialogue, characters, backgrounds, choices, flags, save and load, backlog,
-auto and skip, rollback, gallery, endings and credits.
+auto and skip, rollback, gallery, endings, flowchart and credits.
+
+<p align="left"><img src="readme_files/images/cover.png" width="800" alt="VN Engine cover"></p>
 
 The plugin doesn't change your project. No autoloads, no project settings,
 no main scene change.
