@@ -48,6 +48,10 @@ func enter(params: Dictionary) -> void:
 		var slot: int = game.pending_load_slot
 		game.pending_load_slot = -1
 		story_runner.execute_load_game(slot)
+	elif not game.pending_flow_snapshot.is_empty():
+		var snapshot: Dictionary = game.pending_flow_snapshot
+		game.pending_flow_snapshot = {}
+		story_runner.start_from_snapshot(snapshot)
 	else:
 		var file: String = params.get("story_file", "")
 		if file == "":
@@ -68,6 +72,8 @@ func enter(params: Dictionary) -> void:
 			await _maybe_show_chapter_intro(chapter_id_param)
 
 		game.seed_flags(story_runner.state)
+		if chapter_id_param != "":
+			story_runner.reach_flow_box("chapter:" + chapter_id_param)
 		story_runner.start_story(file)
 		_autosave_on_chapter_enter(chapter_id_param)
 
@@ -185,6 +191,8 @@ func open_game_menu() -> void:
 		menu.title_requested.connect(_on_menu_title)
 	if menu.has_signal("quit_requested"):
 		menu.quit_requested.connect(_on_menu_quit)
+	if menu.has_signal("flowchart_requested"):
+		menu.flowchart_requested.connect(_on_menu_flowchart)
 
 
 func _on_menu_save() -> void:
@@ -201,6 +209,12 @@ func _on_menu_settings() -> void:
 	var game: VNEngineGame = VNEngineMain.game()
 	game.close_overlay()
 	game.open_overlay(&"settings")
+
+
+func _on_menu_flowchart() -> void:
+	var game: VNEngineGame = VNEngineMain.game()
+	game.close_overlay()
+	game.open_overlay(&"flowchart", {"runner": story_runner})
 
 
 func _on_menu_title() -> void:

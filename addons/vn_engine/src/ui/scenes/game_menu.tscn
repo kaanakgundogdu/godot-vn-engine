@@ -61,6 +61,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Settings"
 
+[node name="FlowchartButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Flowchart"
+
 [node name="TitleButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2

@@ -35,6 +35,7 @@ const _CMD_CHOICE_TIMER: GDScript = preload("res://addons/vn_engine/src/core/com
 const _CMD_CHAPTER_TITLE: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_chapter_title.gd")
 const _CMD_EYECATCH: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_eyecatch.gd")
 const _CMD_DATECARD: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_datecard.gd")
+const _CMD_FLOW: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_flow.gd")
 
 const NAMES: PackedStringArray = [
 	"bg", "cg", "cg_hide", "show", "hide", "leave", "move", "shake", "animate",
@@ -42,7 +43,7 @@ const NAMES: PackedStringArray = [
 	"music", "bgm_stop", "sfx", "voice", "movie",
 	"set_var", "flag", "jump", "jump_if", "call", "return", "scene", "wait",
 	"end", "goto_chapter", "credits", "choice_timer",
-	"chapter_title", "eyecatch", "datecard",
+	"chapter_title", "eyecatch", "datecard", "flow",
 ]
 
 const SCRIPTS: Dictionary = {
@@ -77,6 +78,7 @@ const SCRIPTS: Dictionary = {
 	"chapter_title": _CMD_CHAPTER_TITLE,
 	"eyecatch": _CMD_EYECATCH,
 	"datecard": _CMD_DATECARD,
+	"flow": _CMD_FLOW,
 }
 
 

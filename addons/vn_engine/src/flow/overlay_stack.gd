@@ -6,6 +6,7 @@ const _GALLERY_SCENE: PackedScene = preload("res://addons/vn_engine/src/ui/scene
 const _LOG_SCENE: PackedScene = preload("res://addons/vn_engine/src/ui/scenes/log_ui.tscn")
 const _CONFIRM_SCENE: PackedScene = preload("res://addons/vn_engine/src/ui/scenes/confirm_dialog.tscn")
 const _GAME_MENU_SCENE: PackedScene = preload("res://addons/vn_engine/src/ui/scenes/game_menu.tscn")
+const _FLOWCHART_SCENE: PackedScene = preload("res://addons/vn_engine/src/ui/scenes/flowchart_panel.tscn")
 
 const BUILTIN_OVERLAYS: Dictionary = {
 	&"settings": _SETTINGS_SCENE,
@@ -14,6 +15,7 @@ const BUILTIN_OVERLAYS: Dictionary = {
 	&"log": _LOG_SCENE,
 	&"confirm": _CONFIRM_SCENE,
 	&"game_menu": _GAME_MENU_SCENE,
+	&"flowchart": _FLOWCHART_SCENE,
 }
 
 var _layer: CanvasLayer

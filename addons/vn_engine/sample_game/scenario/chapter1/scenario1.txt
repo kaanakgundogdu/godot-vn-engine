@@ -13,6 +13,7 @@ Qaan: Hi, I'm Qaan. I run this place. Want the full tour, or should we skip ahea
 - Skip ahead. -> skip
 
 # tour
+@flow "The Full Tour"
 @flag took_tour = true
 @set_var warmth = 1
 Qaan: A name before the colon picks the speaker, and its color comes from the character file. A bare Narrator: line, like the one before this, shows no name at all. Maybe I will change it in the future to make it narrator or something like that.
@@ -23,6 +24,7 @@ Qaan: That line came right after the aside. "@return" brings you to the node bel
 @jump hub
 
 # skip
+@flow "Skip Ahead"
 Qaan: Straight to the point, I like that.
 @jump hub
 
@@ -31,6 +33,7 @@ Qaan: This aside runs through "@call". Once it finishes, we jump right back to w
 @return
 
 # hub
+@flow "Workshop Hub"
 @bg bg_workshop with wipe_left 0.8
 Qaan: Let's look at two more things before we head out.
 - Ask about the telescope. -> topic_telescope once
@@ -56,11 +59,13 @@ Qaan: Nobody knows about the roof hatch. This choice was hidden until warmth rea
 @jump hub
 
 # topic_notes
+@flow "Qaan's Notes"
 @flag warmth += 1
 Qaan: These are just old observation logs, nothing new. This choice was not clickable until warmth reached 2, that's "disabled_if" at work. Now it is clickable.
 @jump chapter_end
 
 # chapter_end
+@flow "Chapter One End"
 @if warmth >= 3
 Narrator: Qaan waves warmly. You've now seen speaker colors, choices, @flag, @set_var, and @call/@return.
 @elif warmth >= 1

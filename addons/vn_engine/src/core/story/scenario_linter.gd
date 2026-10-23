@@ -48,10 +48,57 @@ static func lint(script: VNEngineStoryScript) -> void:
 			_lint_command(cmd, script, reachable)
 
 	_lint_show_before_speak(script)
+	_lint_flow_choices(script)
 
 	for i in range(1, script.nodes.size()):
 		if not reachable.has(i) and script.nodes[i - 1].is_terminal:
 			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, script.nodes[i].line, "This node is not targeted from anywhere and the previous node is terminal (unreachable)"))
+
+
+static func _lint_flow_choices(script: VNEngineStoryScript) -> void:
+	for node in script.nodes:
+		var marked: Array[VNEngineChoiceOption] = []
+		var unmarked: Array[VNEngineChoiceOption] = []
+		for choice in node.choices:
+			if choice.target_index == -1:
+				continue
+			if _has_flow(script.nodes[choice.target_index]):
+				marked.append(choice)
+			elif not _loops_back(script, choice.target_index, node.base_id):
+				unmarked.append(choice)
+		if marked.is_empty():
+			continue
+		for choice in unmarked:
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, choice.line, "'%s' has no '@flow' but other choices here do, so it gets no box in the flowchart" % choice.target, "add '@flow \"Title\"' to '%s'" % choice.target))
+
+
+static func _has_flow(node: VNEngineStoryNode) -> bool:
+	for cmd in node.commands:
+		if cmd.get("name", "") == "flow":
+			return true
+	return false
+
+
+static func _loops_back(script: VNEngineStoryScript, start: int, choice_base_id: String) -> bool:
+	var index: int = start
+	var visited: Dictionary = {}
+	while index >= 0 and index < script.nodes.size() and not visited.has(index):
+		var node: VNEngineStoryNode = script.nodes[index]
+		if node.base_id == choice_base_id:
+			return true
+		visited[index] = true
+		if _has_flow(node) or not node.choices.is_empty():
+			return false
+		var jump_target: int = -1
+		for cmd in node.commands:
+			var cname: String = cmd.get("name", "")
+			if cname == "jump":
+				jump_target = script.index_of(cmd.get("args", ""))
+				break
+			if _FLOW_STOP_COMMANDS.has(cname) or cname == "jump_if" or cname == "scene":
+				return false
+		index = jump_target if jump_target != -1 else node.next_index
+	return false
 
 
 static func lint_expressions(script: VNEngineStoryScript) -> void:

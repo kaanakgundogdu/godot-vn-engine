@@ -23,6 +23,8 @@ var call_stack: Array[Dictionary] = []
 
 var history: Array[Dictionary] = []
 
+var flow_path: Array[String] = []
+
 func set_flag(flag_name: String, value: Variant) -> void:
 	flags[flag_name.to_lower()] = value
 
@@ -46,6 +48,7 @@ func to_dict(include_history: bool = true) -> Dictionary:
 		"last_speaker": last_speaker,
 		"seen_choices": seen_choices.duplicate(true),
 		"call_stack": call_stack.duplicate(true),
+		"flow_path": flow_path.duplicate(),
 	}
 	if include_history:
 		data["history"] = history.duplicate(true)
@@ -75,6 +78,12 @@ func from_dict(data: Dictionary) -> void:
 	seen_choices = new_seen_choices.duplicate(true)
 
 	call_stack = _to_dict_array(data.get("call_stack", []))
+
+	flow_path.clear()
+	var new_flow_path: Variant = data.get("flow_path", [])
+	if new_flow_path is Array:
+		for item in new_flow_path:
+			flow_path.append(String(item))
 
 	if data.has("history"):
 		history = _to_dict_array(data.get("history", []))

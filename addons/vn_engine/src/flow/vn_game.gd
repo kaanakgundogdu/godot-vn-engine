@@ -24,6 +24,8 @@ var _chapter_cache: VNEngineChapterPreloader = null
 
 var pending_load_slot: int = -1
 
+var pending_flow_snapshot: Dictionary = {}
+
 var return_to_title_on_finish: bool = true
 
 
@@ -123,6 +125,7 @@ func start_new_game(chapter_id: String = "") -> void:
 	if not _has_main():
 		return
 	pending_load_slot = -1
+	pending_flow_snapshot = {}
 	if manifest == null:
 		show_error("start_new_game", "Game manifest not loaded (missing game.tres)")
 		return
@@ -137,16 +140,57 @@ func load_slot(slot_id: int) -> void:
 	if not _has_main():
 		return
 	pending_load_slot = slot_id
-	var root: VNEngineMain = _vn_main()
+	pending_flow_snapshot = {}
 	_set_state(AppState.CHAPTER)
+	_resume_stage_via_loading(_slot_chapter(slot_id))
 
+
+func start_from_flow(box_id: String) -> void:
+	if not _has_main():
+		return
+	if manifest == null or box_id.begins_with("ending:"):
+		return
+
+	var snapshot: Dictionary = VNEngineMain.save_data().read_flow_snapshot(box_id)
+	if snapshot.is_empty():
+		VNEngineLog.warn("Game", "start_from_flow('%s'): no snapshot for this box" % box_id)
+		return
+
+	var root: VNEngineMain = _vn_main()
+	root.overlay_stack.close_all()
+
+	var stage: VNEngineStageScreen = _current_stage_screen()
+	if stage != null and VNEngineMain.settings().autosave:
+		await get_tree().process_frame
+		await get_tree().process_frame
+		VNEngineMain.saves().save_game(stage.story_runner.state, VNEngineMain.save_data().next_autosave_slot())
+
+	root.screen_stack.clear_stack()
+	pending_load_slot = -1
+	pending_flow_snapshot = {}
+
+	if box_id.begins_with("chapter:"):
+		var chapter: VNEngineChapterDef = manifest.find_chapter(box_id.trim_prefix("chapter:"))
+		if chapter == null:
+			show_error("start_from_flow", "Chapter not found: '%s'" % box_id)
+			return
+		_enter_chapter_via_loading(chapter, snapshot)
+		_set_state(AppState.CHAPTER)
+		return
+
+	pending_flow_snapshot = snapshot
+	_set_state(AppState.CHAPTER)
+	_resume_stage_via_loading(manifest.find_chapter(String(snapshot.get("chapter_id", ""))))
+
+
+func _resume_stage_via_loading(chapter: VNEngineChapterDef) -> void:
+	var root: VNEngineMain = _vn_main()
 	var ui: VNEngineUiDef = get_ui()
 	var stage_path: String = root.screen_stack.scene_path(&"stage")
 
-	var slot_chapter: VNEngineChapterDef = _slot_chapter(slot_id)
-	if slot_chapter != null:
+	if chapter != null:
 		_chapter_cache = VNEngineChapterPreloader.new()
-		_chapter_cache.build_plan(slot_chapter.script_path, _shared_asset_resolver, get_flag_list(), slot_chapter)
+		_chapter_cache.build_plan(chapter.script_path, _shared_asset_resolver, get_flag_list(), chapter)
 		_chapter_cache.request_all()
 
 	if ui.loading_mode == "never" or stage_path == "" or not root.screen_stack.has_screen(&"loading"):
@@ -163,10 +207,8 @@ func load_slot(slot_id: int) -> void:
 		loading_params["preloader"] = _chapter_cache
 	if ui.loading_mode == "always":
 		loading_params["min_duration"] = ui.loading_min_duration
-	if ui.loading_show_chapter_title:
-		var title: String = _slot_chapter_title(slot_id)
-		if title != "":
-			loading_params["title"] = title
+	if ui.loading_show_chapter_title and chapter != null:
+		loading_params["title"] = _chapter_title(chapter)
 
 	root.screen_stack.replace_screen(&"loading", loading_params)
 
@@ -192,13 +234,6 @@ func _slot_chapter(slot_id: int) -> VNEngineChapterDef:
 	return manifest.find_chapter(chapter_id)
 
 
-func _slot_chapter_title(slot_id: int) -> String:
-	var chapter: VNEngineChapterDef = _slot_chapter(slot_id)
-	if chapter == null:
-		return ""
-	return _chapter_title(chapter)
-
-
 func goto_chapter(chapter_id: String) -> void:
 	if not _has_main():
 		return
@@ -220,6 +255,7 @@ func goto_chapter(chapter_id: String) -> void:
 		resume_state["cg"] = ""
 
 	pending_load_slot = -1
+	pending_flow_snapshot = {}
 	call_deferred("_enter_chapter_via_loading", chapter, resume_state)
 	_set_state(AppState.CHAPTER)
 
@@ -320,6 +356,7 @@ func trigger_ending(ending_id: String) -> void:
 
 	var save_data: VNEngineSaveData = VNEngineMain.save_data()
 	save_data.mark_ending_seen(ending.id)
+	save_data.mark_flow_reached("ending:" + ending.id)
 	save_data.increment_cleared_count()
 	for unlock_id in ending.unlocks:
 		save_data.set_global_flag(unlock_id, true)

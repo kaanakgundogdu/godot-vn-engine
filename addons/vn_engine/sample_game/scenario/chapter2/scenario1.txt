@@ -6,6 +6,7 @@
 Narrator: Chapter two picks up right after chapter one. This part shows a timed choice and two different endings.
 
 # meet2
+@flow "Last Choice"
 Qaan: One last thing before you go. Stay a while, or head home?
 @choice_timer 6 1
 - Stay a while longer. -> stay

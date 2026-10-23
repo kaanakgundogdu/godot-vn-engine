@@ -343,6 +343,37 @@ func execute_load_game(slot_id: int = 0) -> void:
 	else:
 		VNEngineLog.warn("StoryRunner", "No valid save file found in slot: %d" % slot_id)
 
+func start_from_snapshot(data: Dictionary) -> void:
+	state.from_dict(data)
+	_advancing = false
+	_ended = false
+	end_reason = EndReason.SCRIPT_EXHAUSTED
+	end_ending_id = ""
+	history_stack.clear()
+	pending_choice_timer = {}
+	state_restored.emit(state)
+
+	if not _load_script(state.current_file):
+		return
+
+	var start_index: int = script_res.index_of(state.current_node_id)
+	if start_index == -1:
+		VNEngineLog.warn("StoryRunner", "Flow node not found (id: %s), starting from the beginning -> %s" % [state.current_node_id, state.current_file])
+		start_index = 0
+	play_node(start_index)
+
+func reach_flow_box(box_id: String) -> void:
+	var save_data: VNEngineSaveData = VNEngineMain.save_data()
+	var snapshot: Dictionary = state.to_dict(false)
+	for i in range(state.history.size() - 1, -1, -1):
+		if String(state.history[i].get("text", "")) != "":
+			snapshot["history"] = [state.history[i].duplicate(true)]
+			break
+	save_data.write_flow_snapshot(box_id, snapshot)
+	save_data.mark_flow_reached(box_id)
+	if state.flow_path.is_empty() or state.flow_path.back() != box_id:
+		state.flow_path.append(box_id)
+
 func rollback() -> void:
 	if is_input_locked or bus.has_pending_block() or not history_stack.can_rollback():
 		return

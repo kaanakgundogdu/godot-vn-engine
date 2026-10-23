@@ -1,0 +1,84 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://addons/vn_engine/src/ui/flowchart_panel.gd" id="1_flow"]
+[ext_resource type="Script" path="res://addons/vn_engine/src/ui/flowchart_view.gd" id="2_flow"]
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_sep"]
+color = Color(1, 1, 1, 0.12)
+thickness = 1
+
+[node name="FlowchartPanel" type="ColorRect"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.85)
+script = ExtResource("1_flow")
+
+[node name="ContentMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 96
+theme_override_constants/margin_top = 72
+theme_override_constants/margin_right = 96
+theme_override_constants/margin_bottom = 64
+
+[node name="ContentVBox" type="VBoxContainer" parent="ContentMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 24
+
+[node name="HeaderBar" type="HBoxContainer" parent="ContentMargin/ContentVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="TitleLabel" type="Label" parent="ContentMargin/ContentVBox/HeaderBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+vertical_alignment = 1
+theme_type_variation = &"VNHeadingLabel"
+text = "Flowchart"
+
+[node name="CloseFlowchartButton" type="Button" parent="ContentMargin/ContentVBox/HeaderBar"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(160, 56)
+theme_type_variation = &"VNSmallButton"
+text = "Close"
+
+[node name="HeaderSeparator" type="HSeparator" parent="ContentMargin/ContentVBox"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxLine_sep")
+
+[node name="FlowchartView" type="Control" parent="ContentMargin/ContentVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 0
+clip_contents = true
+script = ExtResource("2_flow")
+
+[node name="EmptyLabel" type="Label" parent="ContentMargin/ContentVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "No flowchart yet"
+
+[node name="HintLabel" type="Label" parent="ContentMargin/ContentVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"VNSmallLabel"
+horizontal_alignment = 1
+text = "Drag to pan, scroll to zoom, click a visited box to start from there"

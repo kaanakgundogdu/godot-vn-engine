@@ -7,7 +7,9 @@ const _TERMINAL_FLOW := ["jump", "end", "return", "goto_chapter"]
 
 class _Header:
 	var base_id: String = ""
+	var first: VNEngineStoryNode = null
 	var current: VNEngineStoryNode = null
+	var flow_line: int = 0
 	var part_count: int = 1
 	var line_count: int = 0
 	var choices: Array[VNEngineChoiceOption] = []
@@ -56,6 +58,7 @@ static func parse_text(text: String, source_name: String = "<memory>", flag_list
 				_close_header(header, script)
 				header = _Header.new()
 				header.base_id = node.id
+				header.first = node
 				header.current = node
 			continue
 
@@ -163,10 +166,27 @@ static func _parse_command(line: String, line_no: int, header: _Header, script: 
 		header.timers.append({"name": cmd_name, "args": cmd_args, "line": line_no, "after_line": false})
 		return
 
+	if cmd_name == "flow":
+		_parse_flow(cmd_args, line_no, header, script)
+		return
+
 	var entry: Dictionary = {"name": cmd_name, "args": cmd_args, "line": line_no, "after_line": header.current.line_index > 0}
 	header.current.commands.append(entry)
 	if cmd_name == "voice" and entry["after_line"]:
 		header.moved_voices.append({"entry": entry, "part": header.current})
+
+static func _parse_flow(args: String, line_no: int, header: _Header, script: VNEngineStoryScript) -> void:
+	if not header.blocks.is_empty():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@flow' cannot be inside '@if'"))
+		return
+	if " ".join(VNEngineCommand.parse_quoted_args(args)).strip_edges() == "":
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@flow' expects a title"))
+		return
+	if header.flow_line > 0:
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@flow' is already used at line %d" % header.flow_line))
+		return
+	header.flow_line = line_no
+	header.first.commands.insert(0, {"name": "flow", "args": args, "line": line_no, "after_line": false})
 
 static func _parse_block(block_name: String, args: String, line_no: int, header: _Header, script: VNEngineStoryScript) -> void:
 	header.moved_voices.clear()

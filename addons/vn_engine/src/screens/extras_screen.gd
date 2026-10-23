@@ -7,9 +7,11 @@ const TAB_INDEX: Dictionary = {
 	&"music": 1,
 	&"endings": 2,
 	&"movies": 3,
+	&"flowchart": 4,
 }
 
 var _gallery_instance: VNEngineGalleryPanel = null
+var _flowchart_instance: VNEngineFlowchartPanel = null
 
 var _extras_def: VNEngineExtrasDef = null
 
@@ -19,6 +21,7 @@ var _music_playing_btn: Button = null
 @onready var tabs: TabContainer = %ExtrasTabs
 @onready var back_btn: Button = %BackButton
 @onready var gallery_tab_root: Control = %GalleryTabRoot
+@onready var flowchart_tab_root: Control = %FlowchartTabRoot
 @onready var music_list: VBoxContainer = %MusicList
 @onready var endings_list: VBoxContainer = %EndingsList
 @onready var endings_counter_label: Label = %EndingsCounterLabel
@@ -50,6 +53,7 @@ func enter(params: Dictionary) -> void:
 	_populate_music_tab()
 	_populate_endings_tab()
 	_populate_movies_tab()
+	_populate_flowchart_tab()
 
 	var target_index: int = TAB_INDEX[requested_tab]
 	if tabs.is_tab_hidden(target_index):
@@ -62,7 +66,7 @@ func exit() -> void:
 
 
 func allows_overlay(id: StringName) -> bool:
-	if id == &"gallery":
+	if id == &"gallery" or id == &"flowchart":
 		return false
 	return true
 
@@ -107,6 +111,7 @@ func _apply_tab_visibility(def: VNEngineExtrasDef) -> void:
 	tabs.set_tab_hidden(TAB_INDEX[&"music"], not def.show_music)
 	tabs.set_tab_hidden(TAB_INDEX[&"endings"], not def.show_endings)
 	tabs.set_tab_hidden(TAB_INDEX[&"movies"], not def.show_movies)
+	tabs.set_tab_hidden(TAB_INDEX[&"flowchart"], not def.show_flowchart)
 
 
 func _first_visible_tab_index() -> int:
@@ -156,6 +161,22 @@ func _populate_gallery_tab() -> void:
 	instance.set_extras_def(_extras_def)
 	instance.set_asset_resolver(VNEngineMain.game().get_shared_asset_resolver())
 	instance.open_panel()
+
+
+func _populate_flowchart_tab() -> void:
+	if not _extras_def.show_flowchart:
+		return
+
+	if _flowchart_instance == null:
+		var flowchart_scene: PackedScene = VNEngineMain.instance().overlay_stack.scene_for(&"flowchart")
+		var instance: VNEngineFlowchartPanel = flowchart_scene.instantiate() as VNEngineFlowchartPanel
+		flowchart_tab_root.add_child(instance)
+		_flowchart_instance = instance
+
+		var close_btn: Button = instance.get_node("%CloseFlowchartButton") as Button
+		close_btn.hide()
+
+	_flowchart_instance.open_panel()
 
 
 func _populate_music_tab() -> void:

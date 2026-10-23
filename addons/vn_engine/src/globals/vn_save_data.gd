@@ -17,6 +17,7 @@ var global_data: Dictionary = {
 	"endings_seen": {},
 	"movies_seen": {},
 	"bgm_heard": {},
+	"flow_reached": {},
 	"flags": {},
 	"total_playtime_sec": 0,
 	"cleared_count": 0,
@@ -196,6 +197,42 @@ func is_movie_unlocked(id: String) -> bool:
 
 func is_ending_seen(id: String) -> bool:
 	return global_data["endings_seen"].has(id.to_lower())
+
+
+func mark_flow_reached(box_id: String) -> void:
+	global_data["flow_reached"][box_id] = int(Time.get_unix_time_from_system())
+	is_dirty = true
+	global_changed.emit()
+
+
+func is_flow_reached(box_id: String) -> bool:
+	return global_data["flow_reached"].has(box_id)
+
+
+func flow_snapshot_path(box_id: String) -> String:
+	return get_save_dir() + "flow/" + box_id.validate_filename() + ".json"
+
+
+func write_flow_snapshot(box_id: String, data: Dictionary) -> void:
+	var path: String = flow_snapshot_path(box_id)
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		VNEngineLog.warn("VNEngineSaveData", "Could not write flow snapshot: %s" % path)
+		return
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
+
+
+func read_flow_snapshot(box_id: String) -> Dictionary:
+	var raw: Variant = read_json_dict(flow_snapshot_path(box_id))
+	if raw == null:
+		return {}
+	return raw
+
+
+func has_flow_snapshot(box_id: String) -> bool:
+	return FileAccess.file_exists(flow_snapshot_path(box_id))
 
 
 func increment_cleared_count() -> void:

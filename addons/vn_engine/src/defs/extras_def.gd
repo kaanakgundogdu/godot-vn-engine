@@ -11,6 +11,8 @@ extends Resource
 @export var show_endings: bool = true
 ## Shows the movies room in extras.
 @export var show_movies: bool = true
+## Shows the flowchart room in extras and the Flowchart entry in the game menu.
+@export var show_flowchart: bool = true
 
 @export_group("Locked entries")
 ## "placeholder" = flat card + locked_text, "blur" = blurred real image,
