@@ -347,6 +347,21 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="MarkReadTextRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MarkReadTextDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/MarkReadTextRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Mark read text"
+
+[node name="MarkReadTextToggle" type="CheckButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/MarkReadTextRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="DialogOpacityRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
 layout_mode = 2
 theme_override_constants/separation = 16

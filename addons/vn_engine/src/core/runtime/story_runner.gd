@@ -50,6 +50,9 @@ var is_auto: bool = false
 var is_skip: bool = false
 var is_input_locked: bool = false
 
+var line_seen_before: bool = false
+var is_restoring: bool = false
+
 var pending_choice_timer: Dictionary = {}
 
 var current_choices: Array[VNEngineChoiceOption] = []
@@ -151,11 +154,14 @@ func play_node(index: int) -> void:
 	pending_choice_timer = {}
 	var node: VNEngineStoryNode = script_res.nodes[index]
 	current_choices.assign(node.choices)
+	is_restoring = false
+	line_seen_before = false
 
 	state.current_node_id = node.id
 
 	if not node.is_pure_logic():
 		var is_seen: bool = VNEngineMain.save_data().is_line_seen(script_res.chapter_id, node.line_id)
+		line_seen_before = is_seen
 
 		if is_skip and not is_seen and not VNEngineMain.settings().skip_unread:
 			is_skip = false
@@ -328,9 +334,12 @@ func execute_load_game(slot_id: int = 0) -> void:
 		VNEngineMain.save_data().mark_line_seen(script_res.chapter_id, node.line_id)
 
 		current_choices = _visible_choices(node)
+		line_seen_before = true
 		dialog_started.emit(node)
 		if not current_choices.is_empty():
+			is_restoring = true
 			choices_requested.emit(current_choices)
+			is_restoring = false
 	else:
 		VNEngineLog.warn("StoryRunner", "No valid save file found in slot: %d" % slot_id)
 
@@ -381,7 +390,10 @@ func _apply_history_entry(entry: Dictionary) -> void:
 		})
 
 	current_choices = _visible_choices(node)
+	line_seen_before = true
 	dialog_started.emit(node)
 
 	if not current_choices.is_empty():
+		is_restoring = true
 		choices_requested.emit(current_choices)
+		is_restoring = false

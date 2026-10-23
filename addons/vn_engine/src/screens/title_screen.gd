@@ -2,6 +2,7 @@ class_name VNEngineTitleScreen
 extends VNEngineScreen
 
 
+@onready var continue_btn: Button = %ContinueButton
 @onready var new_game_btn: Button = %NewGameButton
 @onready var load_game_btn: Button = %LoadGameButton
 @onready var settings_btn: Button = %SettingsButton
@@ -15,6 +16,7 @@ extends VNEngineScreen
 
 
 var _logo_resolved: bool = false
+var _continue_slot: int = -1
 
 
 func _ready() -> void:
@@ -34,7 +36,8 @@ func on_focus() -> void:
 	menu_container.show()
 	if _logo_resolved:
 		logo_rect.show()
-	new_game_btn.grab_focus()
+	_refresh_continue()
+	_grab_default_focus()
 
 
 func on_blur() -> void:
@@ -43,6 +46,7 @@ func on_blur() -> void:
 
 
 func _connect_signals() -> void:
+	continue_btn.pressed.connect(_on_continue_pressed)
 	new_game_btn.pressed.connect(_on_new_game_pressed)
 	load_game_btn.pressed.connect(_on_load_game_pressed)
 	settings_btn.pressed.connect(_on_settings_pressed)
@@ -53,10 +57,23 @@ func _connect_signals() -> void:
 
 
 func _init_menu_state() -> void:
-	new_game_btn.grab_focus()
+	_refresh_continue()
+	_grab_default_focus()
 
 	if OS.has_feature("web"):
 		quit_btn.hide()
+
+
+func _refresh_continue() -> void:
+	_continue_slot = VNEngineMain.save_data().most_recent_slot()
+	continue_btn.visible = _continue_slot != -1
+
+
+func _grab_default_focus() -> void:
+	if continue_btn.visible:
+		continue_btn.grab_focus()
+	else:
+		new_game_btn.grab_focus()
 
 
 func _apply_title_variant() -> void:
@@ -159,6 +176,11 @@ func _apply_logo() -> void:
 	logo_rect.texture = texture
 	logo_rect.show()
 	_logo_resolved = true
+
+
+func _on_continue_pressed() -> void:
+	if _continue_slot != -1:
+		VNEngineMain.game().load_slot(_continue_slot)
 
 
 func _on_new_game_pressed() -> void:

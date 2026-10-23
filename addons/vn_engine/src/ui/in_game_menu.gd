@@ -2,6 +2,8 @@ class_name VNEngineInGameButtons
 extends HBoxContainer
 
 signal log_requested
+signal quick_save_requested
+signal quick_load_requested
 signal save_menu_requested
 signal load_menu_requested
 signal settings_requested
@@ -19,6 +21,8 @@ const PULSE_DURATION: float = 1.2
 @onready var skip_btn: Button = $SkipMargin/Button
 @onready var settings_btn: Button = $SettingsMargin/Button
 @onready var log_btn: Button = $LogMargin/Button
+@onready var quick_save_btn: Button = $QSaveMargin/Button
+@onready var quick_load_btn: Button = $QLoadMargin/Button
 @onready var save_btn: Button = $SaveMargin/Button
 @onready var load_btn: Button = $LoadMargin/Button
 @onready var menu_btn: Button = $MenuMargin/Button
@@ -34,6 +38,8 @@ func _ready() -> void:
 	skip_btn.pressed.connect(_on_skip_pressed)
 	settings_btn.pressed.connect(_on_settings_pressed)
 	log_btn.pressed.connect(_on_log_pressed)
+	quick_save_btn.pressed.connect(_on_quick_save_pressed)
+	quick_load_btn.pressed.connect(_on_quick_load_pressed)
 	save_btn.pressed.connect(_on_save_pressed)
 	load_btn.pressed.connect(_on_load_pressed)
 	menu_btn.pressed.connect(_on_menu_pressed)
@@ -42,6 +48,10 @@ func _ready() -> void:
 		runner.mode_changed.connect(_on_mode_changed)
 		runner.dialog_started.connect(_on_dialog_started)
 		runner.story_ended.connect(_on_story_ended)
+
+
+func set_quick_load_available(available: bool) -> void:
+	quick_load_btn.disabled = not available
 
 
 func _on_auto_toggled(toggled_on: bool) -> void:
@@ -65,6 +75,14 @@ func _on_settings_pressed() -> void:
 
 func _on_log_pressed() -> void:
 	log_requested.emit()
+
+
+func _on_quick_save_pressed() -> void:
+	quick_save_requested.emit()
+
+
+func _on_quick_load_pressed() -> void:
+	quick_load_requested.emit()
 
 
 func _on_save_pressed() -> void:

@@ -14,6 +14,7 @@ const AUDIO_SYSTEM_SCENE: PackedScene = preload("res://addons/vn_engine/src/syst
 const TRANSITION_PLAYER_SCRIPT: GDScript = preload("res://addons/vn_engine/src/flow/transition_player.gd")
 const SAVE_SYSTEM_SCRIPT: GDScript = preload("res://addons/vn_engine/src/systems/save_system.gd")
 const GAME_SCRIPT: GDScript = preload("res://addons/vn_engine/src/flow/vn_game.gd")
+const SAVE_TOAST_SCRIPT: GDScript = preload("res://addons/vn_engine/src/ui/save_toast.gd")
 
 @export_dir var content_root: String = ""
 @export var save_folder: String = "user://vn_engine/{game_id}/saves/"
@@ -98,6 +99,10 @@ func _build_tree() -> void:
 	var card_overlay: Node = CARD_OVERLAY_SCENE.instantiate()
 	card_overlay.name = "CardOverlay"
 	system_layer_node.add_child(card_overlay)
+	var save_toast := Control.new()
+	save_toast.name = "SaveToast"
+	save_toast.set_script(SAVE_TOAST_SCRIPT)
+	system_layer_node.add_child(save_toast)
 	var systems_node := Node.new()
 	systems_node.name = "Systems"
 	add_child(systems_node)
@@ -218,6 +223,9 @@ func _ready() -> void:
 	_save_data = VNEngineSaveData.new(resolve_path(save_folder))
 	_settings = VNEngineSettings.load_from(resolve_path(settings_file))
 	_settings.apply_all()
+	var save_toast: VNEngineSaveToast = system_layer.get_node_or_null("SaveToast") as VNEngineSaveToast
+	if save_toast != null:
+		_saves.saved.connect(save_toast.on_saved)
 	var engine_theme: Theme = null
 	if str(ProjectSettings.get_setting("gui/theme/custom", "")) == "":
 		engine_theme = load(DEFAULT_THEME_PATH)

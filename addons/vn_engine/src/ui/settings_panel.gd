@@ -33,6 +33,7 @@ var _draft: VNEngineSettings
 @onready var text_speed_preview: RichTextLabel = %TextSpeedPreview
 @onready var auto_speed_slider: HSlider = %AutoSpeedSlider
 @onready var skip_unread_toggle: CheckButton = %SkipUnreadToggle
+@onready var mark_read_text_toggle: CheckButton = %MarkReadTextToggle
 @onready var dialog_opacity_slider: HSlider = %DialogOpacitySlider
 @onready var dialog_opacity_label: Label = %DialogOpacityLabel
 @onready var autosave_toggle: CheckButton = %AutosaveToggle
@@ -57,6 +58,7 @@ func _ready() -> void:
 	text_speed_slider.value_changed.connect(_on_text_speed_changed)
 	auto_speed_slider.value_changed.connect(_on_auto_speed_changed)
 	skip_unread_toggle.toggled.connect(_on_skip_unread_toggled)
+	mark_read_text_toggle.toggled.connect(_on_mark_read_text_toggled)
 	dialog_opacity_slider.value_changed.connect(_on_dialog_opacity_changed)
 	autosave_toggle.toggled.connect(_on_autosave_toggled)
 
@@ -120,6 +122,8 @@ func _refresh_controls() -> void:
 	text_speed_slider.set_value_no_signal(_draft.text_speed_normalized)
 	auto_speed_slider.set_value_no_signal(_draft.auto_speed_normalized)
 	skip_unread_toggle.set_pressed_no_signal(_draft.skip_unread)
+	mark_read_text_toggle.set_pressed_no_signal(_draft.mark_read_text)
+	mark_read_text_toggle.get_parent().visible = _mark_read_text_available()
 	dialog_opacity_slider.set_value_no_signal(_draft.window_opacity)
 	dialog_opacity_label.text = _format_percent(_draft.window_opacity)
 	autosave_toggle.set_pressed_no_signal(_draft.autosave)
@@ -143,6 +147,11 @@ func _refresh_window_size_option() -> void:
 		window_size_option.add_item(label)
 
 	window_size_option.select(_window_size_choices.find(current))
+
+
+func _mark_read_text_available() -> bool:
+	var game: VNEngineGame = VNEngineMain.game()
+	return game == null or game.get_ui().mark_seen_text
 
 
 func _play_text_speed_preview() -> void:
@@ -219,6 +228,10 @@ func _on_auto_speed_changed(value: float) -> void:
 
 func _on_skip_unread_toggled(button_pressed: bool) -> void:
 	_draft.skip_unread = button_pressed
+
+
+func _on_mark_read_text_toggled(button_pressed: bool) -> void:
+	_draft.mark_read_text = button_pressed
 
 
 func _on_dialog_opacity_changed(value: float) -> void:

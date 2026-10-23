@@ -9,15 +9,22 @@ extends VNEngineScreen
 func _ready() -> void:
 	VNEngineMain.instance().persistent_audio.attach_runner(story_runner)
 
+	in_game_buttons.quick_save_requested.connect(_on_quick_save_requested)
+	in_game_buttons.quick_load_requested.connect(_on_quick_load_requested)
 	in_game_buttons.save_menu_requested.connect(_on_save_menu_requested)
 	in_game_buttons.load_menu_requested.connect(_on_load_menu_requested)
 	in_game_buttons.settings_requested.connect(_on_settings_requested)
 	in_game_buttons.log_requested.connect(_on_log_requested)
 	in_game_buttons.menu_requested.connect(open_game_menu)
 
+	VNEngineMain.saves().saved.connect(_on_slot_saved)
+	_refresh_quick_load()
+
 	story_runner.story_ended.connect(_on_story_ended)
 
 	story_runner.state_restored.connect(_on_state_restored)
+
+	story_runner.choices_requested.connect(_on_choices_requested)
 
 	story_runner.parse_diagnostics_ready.connect(_on_parse_diagnostics_ready)
 
@@ -128,6 +135,24 @@ func _on_parse_diagnostics_ready(diagnostics: Array) -> void:
 		return
 
 	root.screen_stack.push_screen(&"diagnostics", {"diagnostics": diagnostics, "source": source})
+
+
+func _on_quick_save_requested() -> void:
+	VNEngineMain.saves().save_game(story_runner.state, VNEngineSaveData.QUICKSAVE_SLOT)
+
+
+func _on_quick_load_requested() -> void:
+	story_runner.execute_load_game(VNEngineSaveData.QUICKSAVE_SLOT)
+
+
+func _on_slot_saved(slot_id: int) -> void:
+	if slot_id == VNEngineSaveData.QUICKSAVE_SLOT:
+		_refresh_quick_load()
+
+
+func _refresh_quick_load() -> void:
+	var status: VNEngineSaveData.SlotStatus = VNEngineMain.saves().get_slot_status(VNEngineSaveData.QUICKSAVE_SLOT)
+	in_game_buttons.set_quick_load_available(status == VNEngineSaveData.SlotStatus.OK)
 
 
 func _on_save_menu_requested() -> void:
@@ -253,7 +278,20 @@ func _autosave_on_chapter_enter(chapter_id: String) -> void:
 
 	await get_tree().process_frame
 	await get_tree().process_frame
-	VNEngineMain.saves().save_game(story_runner.state, VNEngineSaveData.AUTOSAVE_SLOT)
+	VNEngineMain.saves().save_game(story_runner.state, VNEngineMain.save_data().next_autosave_slot())
+
+
+func _on_choices_requested(_choices: Array[VNEngineChoiceOption]) -> void:
+	if story_runner.is_restoring:
+		return
+	if not VNEngineMain.game().get_ui().autosave_before_choices:
+		return
+	if not VNEngineMain.settings().autosave:
+		return
+
+	await get_tree().process_frame
+	await get_tree().process_frame
+	VNEngineMain.saves().save_game(story_runner.state, VNEngineMain.save_data().next_autosave_slot())
 
 
 func _maybe_show_chapter_intro(chapter_id: String) -> void:

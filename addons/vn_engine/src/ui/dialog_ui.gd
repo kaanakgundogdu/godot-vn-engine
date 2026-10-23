@@ -4,6 +4,9 @@ extends Control
 signal line_revealed
 
 const NAME_COLOR_FALLBACK: Color = Color.WHITE
+const BOX_FADE_TIME: float = 0.2
+const BOX_SLIDE_DISTANCE: float = 12.0
+const NAME_FADE_TIME: float = 0.12
 
 @export var runner: VNEngineStoryRunner
 @export var dialog_label: RichTextLabel
@@ -15,6 +18,11 @@ var is_ui_hidden: bool = false
 
 var _text_tween: Tween
 var _indicator_tween: Tween
+var _box_tween: Tween
+var _name_tween: Tween
+var _box_fading_out: bool = false
+var _box_rest_position: Vector2 = Vector2.ZERO
+var _last_speaker_text: String = ""
 
 var _skip_via_hold: bool = false
 
@@ -63,7 +71,7 @@ func _ready() -> void:
 func toggle_ui() -> void:
 	is_ui_hidden = !is_ui_hidden
 
-	visible = !is_ui_hidden
+	_set_box_visible(!is_ui_hidden)
 
 	if in_game_buttons:
 		in_game_buttons.visible = !is_ui_hidden
@@ -79,7 +87,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	if is_ui_hidden:
 		toggle_ui()
 
-	show()
+	_set_box_visible(true)
 	_hide_continue_indicator()
 
 	if node.text == "" and not runner.current_choices.is_empty():
@@ -87,6 +95,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 		return
 
 	_apply_speaker(node.speaker_id)
+	_apply_seen_color()
 
 	dialog_label.visible_characters = 0
 
@@ -117,12 +126,16 @@ func _apply_speaker(speaker_id: String) -> void:
 		if name_row:
 			name_row.hide()
 	else:
+		var speaker_changed: bool = speaker_text != _last_speaker_text
 		speaker_label.text = speaker_text
 		var name_color: Color = _speaker_name_color(speaker_id)
 		speaker_label.add_theme_color_override("font_color", name_color)
 		_apply_name_plate_style(name_color)
 		if name_row:
 			name_row.show()
+		if speaker_changed:
+			_fade_in_name_plate()
+	_last_speaker_text = speaker_text
 
 
 func clear_text() -> void:
@@ -132,6 +145,7 @@ func clear_text() -> void:
 	_hide_continue_indicator()
 	dialog_label.text = ""
 	speaker_label.text = ""
+	_last_speaker_text = ""
 	if name_row:
 		name_row.hide()
 
@@ -149,6 +163,7 @@ func _show_choice_prompt() -> void:
 		if text == "":
 			continue
 		_apply_speaker(String(entry.get("speaker", "")))
+		_apply_seen_color()
 		dialog_label.text = text
 		break
 
@@ -157,7 +172,7 @@ func _show_choice_prompt() -> void:
 
 
 func _on_story_ended() -> void:
-	hide()
+	_set_box_visible(false)
 	_hide_continue_indicator()
 
 
@@ -309,6 +324,82 @@ func _dialog_use_character_colors() -> bool:
 	var manifest: VNEngineGameManifest = VNEngineMain.game().get_manifest()
 	var ui_def: VNEngineUiDef = manifest.get_ui() if manifest != null else VNEngineUiDef.new()
 	return ui_def.dialog_use_character_colors
+
+
+func _animations_enabled() -> bool:
+	if runner != null and runner.is_skip:
+		return false
+	return VNEngineMain.game().get_ui().ui_animations
+
+
+func _animation_time(base: float) -> float:
+	return base * VNEngineMain.game().get_ui().ui_animation_scale
+
+
+func _set_box_visible(value: bool) -> void:
+	if value:
+		if visible and not _box_fading_out:
+			return
+		_reset_box_tween()
+		show()
+		if not _animations_enabled():
+			return
+		_box_rest_position = position
+		modulate.a = 0.0
+		position = _box_rest_position + Vector2(0.0, BOX_SLIDE_DISTANCE)
+		var time: float = _animation_time(BOX_FADE_TIME)
+		_box_tween = create_tween().set_parallel(true)
+		_box_tween.tween_property(self, "modulate:a", 1.0, time)
+		_box_tween.tween_property(self, "position", _box_rest_position, time)
+		return
+
+	if not visible or _box_fading_out:
+		return
+	if not _animations_enabled():
+		_reset_box_tween()
+		hide()
+		return
+	_box_rest_position = position
+	_box_fading_out = true
+	var fade_time: float = _animation_time(BOX_FADE_TIME)
+	_box_tween = create_tween().set_parallel(true)
+	_box_tween.tween_property(self, "modulate:a", 0.0, fade_time)
+	_box_tween.tween_property(self, "position", _box_rest_position + Vector2(0.0, BOX_SLIDE_DISTANCE), fade_time)
+	_box_tween.chain().tween_callback(_on_box_faded_out)
+
+
+func _on_box_faded_out() -> void:
+	_reset_box_tween()
+	hide()
+
+
+func _reset_box_tween() -> void:
+	if _box_tween != null and _box_tween.is_valid():
+		_box_tween.kill()
+		position = _box_rest_position
+		modulate.a = 1.0
+	_box_fading_out = false
+
+
+func _fade_in_name_plate() -> void:
+	if name_plate == null:
+		return
+	if _name_tween != null and _name_tween.is_valid():
+		_name_tween.kill()
+	name_plate.modulate.a = 1.0
+	if not _animations_enabled():
+		return
+	name_plate.modulate.a = 0.0
+	_name_tween = create_tween()
+	_name_tween.tween_property(name_plate, "modulate:a", 1.0, _animation_time(NAME_FADE_TIME))
+
+
+func _apply_seen_color() -> void:
+	var ui_def: VNEngineUiDef = VNEngineMain.game().get_ui()
+	if ui_def.mark_seen_text and VNEngineMain.settings().mark_read_text and runner != null and runner.line_seen_before:
+		dialog_label.add_theme_color_override("default_color", ui_def.seen_text_color)
+	else:
+		dialog_label.remove_theme_color_override("default_color")
 
 
 func _dialog_name_align() -> String:
