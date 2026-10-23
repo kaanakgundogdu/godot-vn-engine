@@ -18,7 +18,7 @@ func apply(name: String, args: String, ctx: VNEngineCommandContext) -> void:
 
 	var cmd: VNEngineCommand = _commands[name]
 
-	if cmd.is_blocking():
+	if cmd.is_blocking_for(args):
 		_pending_block = true
 
 	cmd.apply(args, ctx)

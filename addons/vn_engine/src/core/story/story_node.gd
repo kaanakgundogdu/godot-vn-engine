@@ -10,6 +10,7 @@ class_name VNEngineStoryNode
 @export var speaker_id: String = ""
 @export var expression: String = ""
 @export var animation: String = ""
+@export var animation_params: Dictionary = {}
 @export var text: String = ""
 @export var commands: Array[Dictionary] = []
 @export var choices: Array[VNEngineChoiceOption] = []

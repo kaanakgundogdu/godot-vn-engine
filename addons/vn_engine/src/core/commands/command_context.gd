@@ -5,6 +5,7 @@ var runner: VNEngineStoryRunner
 var state: VNEngineStoryState
 var script_res: VNEngineStoryScript
 var bus: VNEngineCommandBus
+var animations: VNEngineAnimationRegistry
 
 var background: VNEngineBackgroundSystem
 var characters: VNEngineCharacterLayer

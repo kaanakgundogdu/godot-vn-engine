@@ -391,7 +391,11 @@ static func _parse_dialog(line: String, line_no: int, header: _Header, script: V
 	node.speaker_id = speaker_id
 	node.expression = parsed["expression"]
 	node.animation = parsed["animation"]
+	node.animation_params = parsed["animation_params"]
 	node.text = _unescape_text(text_part)
+	for token in parsed["animation_tokens"]:
+		if not token.contains("="):
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Animation parameter must be key=value: '%s'" % token))
 
 static func _parse_speaker_info(info: String) -> Dictionary:
 	var paren: Dictionary = _extract_bracketed(info, "(", ")")
@@ -408,10 +412,18 @@ static func _parse_speaker_info(info: String) -> Dictionary:
 	for bracket_range in ranges:
 		speaker = speaker.substr(0, bracket_range[0]) + speaker.substr(bracket_range[1] + 1)
 
+	var anim_tokens: PackedStringArray = String(brack["value"]).split(" ", false)
+	var anim_name: String = ""
+	if not anim_tokens.is_empty():
+		anim_name = anim_tokens[0]
+		anim_tokens.remove_at(0)
+
 	return {
 		"speaker_id": speaker.strip_edges().to_lower(),
 		"expression": paren["value"],
-		"animation": brack["value"],
+		"animation": anim_name,
+		"animation_params": VNEngineAnimation.parse_params(anim_tokens),
+		"animation_tokens": anim_tokens,
 	}
 
 static func _extract_bracketed(text: String, open_ch: String, close_ch: String) -> Dictionary:

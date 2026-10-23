@@ -63,6 +63,7 @@ func _init() -> void:
 	bus = VNEngineCommandBus.new()
 	ctx.runner = self
 	ctx.bus = bus
+	ctx.animations = VNEngineAnimationRegistry.new()
 	ctx.state = state
 	_init_assets()
 	_register_commands()
@@ -188,6 +189,9 @@ func play_node(index: int) -> void:
 		if typeof(shown) == TYPE_DICTIONARY:
 			ctx.characters.show_character(node.speaker_id, shown.get("outfit", ""), shown.get("pose", ""), node.expression, shown.get("shot", ""), "", "")
 			shown["expression"] = node.expression
+
+	if node.animation != "":
+		ctx.animations.play_on_character(node.speaker_id, node.animation, node.animation_params, ctx)
 
 	if node.speaker_id != "":
 		state.last_speaker = node.speaker_id

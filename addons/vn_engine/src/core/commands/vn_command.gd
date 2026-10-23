@@ -10,6 +10,9 @@ func apply(_args: String, _ctx: VNEngineCommandContext) -> void:
 func is_blocking() -> bool:
 	return false
 
+func is_blocking_for(_args: String) -> bool:
+	return is_blocking()
+
 static func parse_quoted_args(args: String) -> Array[String]:
 	var result: Array[String] = []
 	var text := args.strip_edges()

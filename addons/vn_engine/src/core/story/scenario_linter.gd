@@ -39,6 +39,9 @@ static func lint(script: VNEngineStoryScript) -> void:
 				if cmd.get("name", "") == "jump":
 					script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, cmd["line"], "'@jump' is ignored when choices are present"))
 
+		if node.animation != "":
+			_lint_animation_name(node.animation, node.line, script)
+
 		_lint_after_flow_stop(node, script)
 
 		for cmd in node.commands:
@@ -153,8 +156,40 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@choice_timer' expects a valid number of seconds (>0)"))
 			elif ct_tokens.size() > 1 and (not ct_tokens[1].is_valid_int() or ct_tokens[1].to_int() < 0):
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@choice_timer' default_index must be an integer >= 0: '%s'" % ct_tokens[1]))
+		"animate":
+			_lint_animate(args, line_no, script)
 		"shake", "end":
 			pass
+
+
+static func _lint_animate(args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var plain: Array[String] = []
+	for token in VNEngineCommand.parse_quoted_args(args):
+		if token == "wait" or token.contains("="):
+			continue
+		plain.append(token)
+
+	if plain.size() < 2:
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@animate' expects <character> <animation>"))
+		return
+
+	for i in range(2, plain.size()):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Animation parameter must be key=value: '%s'" % plain[i]))
+
+	_lint_animation_name(plain[1], line_no, script)
+
+
+static func _lint_animation_name(anim_name: String, line_no: int, script: VNEngineStoryScript) -> void:
+	if VNEnginePaths.content_root() == "" or VNEngineAnimationRegistry.has_animation(anim_name):
+		return
+	script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Unknown animation: '%s'" % anim_name, _suggest_animation(anim_name)))
+
+
+static func _suggest_animation(anim_name: String) -> String:
+	for known in VNEngineAnimationRegistry.known_names():
+		if anim_name.begins_with(known) or known.begins_with(anim_name):
+			return "suggestion: '%s'" % known
+	return ""
 
 
 static func _lint_jump_if(args: String, line_no: int, script: VNEngineStoryScript, reachable: Dictionary) -> void:

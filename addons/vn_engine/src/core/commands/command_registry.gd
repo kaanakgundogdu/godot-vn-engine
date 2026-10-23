@@ -12,6 +12,7 @@ const _CMD_HIDE: GDScript = preload("res://addons/vn_engine/src/core/commands/cm
 const _CMD_LEAVE: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_leave.gd")
 const _CMD_MOVE: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_move.gd")
 const _CMD_SHAKE: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_shake.gd")
+const _CMD_ANIMATE: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_animate.gd")
 const _CMD_TRANSITION: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_transition.gd")
 const _CMD_WINDOW: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_window.gd")
 const _CMD_MUSIC: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_music.gd")
@@ -36,7 +37,7 @@ const _CMD_EYECATCH: GDScript = preload("res://addons/vn_engine/src/core/command
 const _CMD_DATECARD: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_datecard.gd")
 
 const NAMES: PackedStringArray = [
-	"bg", "cg", "cg_hide", "show", "hide", "leave", "move", "shake",
+	"bg", "cg", "cg_hide", "show", "hide", "leave", "move", "shake", "animate",
 	"transition", "window",
 	"music", "bgm_stop", "sfx", "voice", "movie",
 	"set_var", "flag", "jump", "jump_if", "call", "return", "scene", "wait",
@@ -53,6 +54,7 @@ const SCRIPTS: Dictionary = {
 	"leave": _CMD_LEAVE,
 	"move": _CMD_MOVE,
 	"shake": _CMD_SHAKE,
+	"animate": _CMD_ANIMATE,
 	"transition": _CMD_TRANSITION,
 	"window": _CMD_WINDOW,
 	"music": _CMD_MUSIC,
