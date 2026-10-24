@@ -36,6 +36,9 @@ var _no_wait: bool = false
 var _total_chars: int = 0
 var _typing: bool = false
 var _at_click: bool = false
+var _voice_waiting: bool = false
+var _voice_wait_id: int = 0
+var _voice_wait_serial: int = 0
 
 var _name_plate_style: StyleBoxFlat
 
@@ -159,6 +162,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 
 func _reset_reveal() -> void:
 	_line_serial += 1
+	_cancel_voice_wait()
 	_kill_text_tween()
 	_events = []
 	_event_index = 0
@@ -633,7 +637,13 @@ func _on_mode_changed() -> void:
 		return
 	var current_node := runner.get_current_node()
 	if current_node != null and runner.current_choices.is_empty():
-		if runner.is_auto or runner.is_skip:
+		if not runner.is_auto:
+			_cancel_voice_wait()
+		if runner.is_auto and not runner.is_skip and _voice_playing():
+			if not _voice_waiting:
+				auto_timer.stop()
+				_begin_voice_wait()
+		elif runner.is_auto or runner.is_skip:
 			auto_timer.stop()
 			runner.next_node()
 
@@ -651,19 +661,60 @@ func _advance_dialog() -> void:
 			var advanced: bool = _reveal_to_end()
 			if runner.is_auto and not advanced:
 				auto_timer.stop()
+				_cancel_voice_wait()
 				runner.next_node()
 		elif _at_click:
 			_resume_from_click()
 		else:
 			_reveal_to_next_stop()
 	else:
+		_cancel_voice_wait()
+		_line_serial += 1
 		if runner:
 			runner.next_node()
 
 
 func _on_auto_timer_timeout() -> void:
-	if runner.is_auto:
-		runner.next_node()
+	if not runner.is_auto:
+		return
+	if _voice_playing():
+		_begin_voice_wait()
+		return
+	runner.next_node()
+
+
+func _voice_playing() -> bool:
+	if runner == null or runner.ctx == null or runner.ctx.audio == null:
+		return false
+	return runner.ctx.audio.is_channel_playing("voice")
+
+
+func _cancel_voice_wait() -> void:
+	_voice_waiting = false
+	_voice_wait_id += 1
+
+
+func _begin_voice_wait() -> void:
+	var audio: VNEngineAudioSystem = runner.ctx.audio
+	if not audio.channel_finished.is_connected(_on_channel_finished):
+		audio.channel_finished.connect(_on_channel_finished)
+	_voice_wait_id += 1
+	_voice_wait_serial = _line_serial
+	_voice_waiting = true
+
+
+func _on_channel_finished(channel_name: String) -> void:
+	if channel_name != "voice" or not _voice_waiting:
+		return
+	_voice_waiting = false
+	if _voice_wait_serial != _line_serial or runner == null or not runner.is_auto:
+		return
+	var serial: int = _line_serial
+	var wait_id: int = _voice_wait_id
+	get_tree().create_timer(0.3, false).timeout.connect(func():
+		if serial == _line_serial and wait_id == _voice_wait_id and runner.is_auto:
+			runner.next_node()
+	)
 
 
 func _is_overlay_open() -> bool:

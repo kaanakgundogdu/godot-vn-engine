@@ -27,6 +27,8 @@ func resolve(kind: String, name: String) -> String:
 		return _cache[cache_key]
 
 	var entry: VNEngineAssetMapEntry = _entries.get(kind, null)
+	if entry == null and kind == "ambient":
+		entry = _entries.get("sfx", null)
 	if entry == null:
 		_warn_once(kind, name, "'%s' (kind=%s) not found: no entry for this kind in asset_map.tres" % [name, kind])
 		_cache[cache_key] = ""

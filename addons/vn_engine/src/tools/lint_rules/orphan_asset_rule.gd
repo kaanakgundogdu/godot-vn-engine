@@ -8,13 +8,16 @@ func title() -> String:
 
 
 func run(ctx: VNEngineAssetLintContext) -> void:
-	var kinds: Array[String] = ["background", "cg", "character", "music", "sfx", "movie"]
+	var kinds: Array[String] = ["background", "cg", "character", "music", "sfx", "ambient", "movie"]
 
 	var referenced: Dictionary = {}
-	for simple_kind in ["background", "cg", "music", "sfx", "movie"]:
+	for simple_kind in ["background", "cg", "music", "sfx", "ambient", "movie"]:
 		var name_set: Dictionary = {}
 		for ref in ctx.refs.get(simple_kind, []):
 			name_set[ref["name"]] = true
+		if simple_kind == "sfx":
+			for ref in ctx.refs.get("ambient", []):
+				name_set[ref["name"]] = true
 		referenced[simple_kind] = name_set
 
 	var char_set: Dictionary = {}

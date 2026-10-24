@@ -17,6 +17,7 @@ const _CMD_TRANSITION: GDScript = preload("res://addons/vn_engine/src/core/comma
 const _CMD_WINDOW: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_window.gd")
 const _CMD_MUSIC: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_music.gd")
 const _CMD_BGM_STOP: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_bgm_stop.gd")
+const _CMD_AMBIENT: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_ambient.gd")
 const _CMD_SFX: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_sfx.gd")
 const _CMD_VOICE: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_voice.gd")
 const _CMD_MOVIE: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_movie.gd")
@@ -42,7 +43,7 @@ const _CMD_ADV: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd
 const NAMES: PackedStringArray = [
 	"bg", "cg", "cg_hide", "show", "hide", "leave", "move", "shake", "animate",
 	"transition", "window",
-	"music", "bgm_stop", "sfx", "voice", "movie",
+	"music", "bgm_stop", "ambient", "sfx", "voice", "movie",
 	"set_var", "flag", "jump", "jump_if", "call", "return", "scene", "wait",
 	"end", "goto_chapter", "credits", "choice_timer",
 	"chapter_title", "eyecatch", "datecard", "flow",
@@ -63,6 +64,7 @@ const SCRIPTS: Dictionary = {
 	"window": _CMD_WINDOW,
 	"music": _CMD_MUSIC,
 	"bgm_stop": _CMD_BGM_STOP,
+	"ambient": _CMD_AMBIENT,
 	"sfx": _CMD_SFX,
 	"voice": _CMD_VOICE,
 	"movie": _CMD_MOVIE,

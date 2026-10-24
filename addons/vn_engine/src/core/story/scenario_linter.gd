@@ -194,9 +194,11 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 		"movie":
 			if args == "":
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@movie' expects a file name"))
-		"music", "sfx", "voice":
+		"sfx", "voice":
 			if args == "":
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' expects an asset name" % name))
+		"music", "ambient", "bgm_stop":
+			_lint_fade_command(name, args, line_no, script)
 		"bg":
 			if args == "":
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@bg' expects a background name"))
@@ -219,6 +221,21 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@adv' takes no arguments: '%s'" % args))
 		"shake", "end":
 			pass
+
+
+static func _lint_fade_command(name: String, args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var names: Array[String] = []
+	for token: String in args.split(" ", false):
+		if token.begins_with("fade="):
+			var number: String = token.substr(5)
+			if not number.is_valid_float() or number.to_float() < 0.0:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' fade must be a number >= 0: '%s'" % [name, number]))
+		elif token.contains("="):
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@%s' has an unknown parameter: '%s'" % [name, token]))
+		else:
+			names.append(token)
+	if name != "bgm_stop" and names.is_empty():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' expects an asset name" % name))
 
 
 static func _lint_animate(args: String, line_no: int, script: VNEngineStoryScript) -> void:

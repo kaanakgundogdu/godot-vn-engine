@@ -14,6 +14,7 @@ func run(ctx: VNEngineAssetLintContext) -> void:
 		"character": ctx.rx_character,
 		"music": ctx.rx_music,
 		"sfx": ctx.rx_sfx,
+		"ambient": ctx.rx_ambient,
 		"ui": ctx.rx_ui,
 		"movie": ctx.rx_movie,
 	}
@@ -31,7 +32,11 @@ func run(ctx: VNEngineAssetLintContext) -> void:
 			if not entry.extensions.is_empty() and not entry.extensions.has(extension):
 				continue
 
-			if rx.search(basename.get_basename()) == null:
+			var stem: String = basename.get_basename()
+			var matches: bool = rx.search(stem) != null
+			if not matches and entry.kind == "sfx":
+				matches = ctx.rx_ambient.search(stem) != null
+			if not matches:
 				ctx.error("`%s%s` (%s) does not match the naming pattern for its kind" % [root, file["rel_path"], entry.kind])
 				continue
 

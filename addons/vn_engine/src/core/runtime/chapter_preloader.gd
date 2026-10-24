@@ -1,7 +1,7 @@
 class_name VNEngineChapterPreloader
 extends RefCounted
 
-const _PRELOAD_KINDS: PackedStringArray = ["background", "cg", "music", "sfx", "movie"]
+const _PRELOAD_KINDS: PackedStringArray = ["background", "cg", "music", "ambient", "sfx", "movie"]
 
 static var _warned_preload: Dictionary = {}
 
@@ -114,9 +114,13 @@ func _collect_asset_paths(script: VNEngineStoryScript, resolver: VNEngineAssetRe
 				"cg":
 					_add_path(result, seen, resolver.resolve("cg", _first_token(args)))
 				"music":
-					var music_id: String = args.strip_edges()
+					var music_id: String = VNEngineAudioSystem.split_fade(args)["value"]
 					if music_id != "" and music_id.to_lower() != "stop":
 						_add_path(result, seen, resolver.resolve("music", music_id))
+				"ambient":
+					var ambient_id: String = VNEngineAudioSystem.split_fade(args)["value"]
+					if ambient_id != "" and ambient_id.to_lower() != "stop":
+						_add_path(result, seen, resolver.resolve("ambient", ambient_id))
 				"sfx":
 					var sfx_id: String = args.strip_edges()
 					if sfx_id != "" and sfx_id.to_lower() != "stop":

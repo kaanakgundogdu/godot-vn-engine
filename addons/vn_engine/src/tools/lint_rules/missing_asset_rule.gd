@@ -8,7 +8,7 @@ func title() -> String:
 
 
 func run(ctx: VNEngineAssetLintContext) -> void:
-	for kind in ["background", "cg", "music", "sfx", "movie"]:
+	for kind in ["background", "cg", "music", "ambient", "sfx", "movie"]:
 		for ref in ctx.refs.get(kind, []):
 			var name: String = ref["name"]
 			if not ctx.resolver.exists(kind, name):

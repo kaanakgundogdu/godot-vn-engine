@@ -4,7 +4,8 @@ extends VNEngineCommand
 func command_name() -> String:
 	return "bgm_stop"
 
-func apply(_args: String, ctx: VNEngineCommandContext) -> void:
+func apply(args: String, ctx: VNEngineCommandContext) -> void:
+	var fade: float = VNEngineAudioSystem.split_fade(args)["fade"]
 	ctx.state.audio.erase("music")
 	if ctx.audio:
-		ctx.audio.play_channel("music", "stop")
+		ctx.audio.stop_channel("music", fade)

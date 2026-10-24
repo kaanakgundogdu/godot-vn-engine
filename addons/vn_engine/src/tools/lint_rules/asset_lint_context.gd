@@ -16,6 +16,7 @@ var rx_cg: RegEx
 var rx_character: RegEx
 var rx_music: RegEx
 var rx_sfx: RegEx
+var rx_ambient: RegEx
 var rx_ui: RegEx
 var rx_movie: RegEx
 
@@ -112,6 +113,9 @@ func _compile_patterns() -> void:
 	rx_sfx = RegEx.new()
 	rx_sfx.compile("^sfx_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
+	rx_ambient = RegEx.new()
+	rx_ambient.compile("^amb_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
+
 	rx_ui = RegEx.new()
 	rx_ui.compile("^ui_[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
@@ -185,6 +189,7 @@ func _collect_references(scanned_scripts: Array[VNEngineStoryScript], cast_db: V
 		"cg": [],
 		"music": [],
 		"sfx": [],
+		"ambient": [],
 		"movie": [],
 		"character": [],
 	}
@@ -214,13 +219,17 @@ func _collect_references(scanned_scripts: Array[VNEngineStoryScript], cast_db: V
 							else:
 								out["cg"].append({"name": ec_id, "source": story.source_path, "line": line_no})
 					"music":
-						var music_name: String = cargs.strip_edges()
+						var music_name: String = _first_plain_token(cargs)
 						if music_name != "" and music_name.to_lower() != "stop":
 							out["music"].append({"name": music_name, "source": story.source_path, "line": line_no})
 					"sfx":
 						var sfx_name: String = cargs.strip_edges()
 						if sfx_name != "" and sfx_name.to_lower() != "stop":
 							out["sfx"].append({"name": sfx_name, "source": story.source_path, "line": line_no})
+					"ambient":
+						var ambient_name: String = _first_plain_token(cargs)
+						if ambient_name != "" and ambient_name.to_lower() != "stop":
+							out["ambient"].append({"name": ambient_name, "source": story.source_path, "line": line_no})
 					"movie":
 						var movie_name: String = cargs.strip_edges()
 						if movie_name != "":
@@ -233,6 +242,13 @@ func _collect_references(scanned_scripts: Array[VNEngineStoryScript], cast_db: V
 							out["character"].append(parsed)
 
 	return out
+
+
+func _first_plain_token(args: String) -> String:
+	for token: String in args.strip_edges().split(" ", false):
+		if not token.contains("="):
+			return token
+	return ""
 
 
 func _parse_show_args(args: String, cast_db: VNEngineCast) -> Dictionary:
