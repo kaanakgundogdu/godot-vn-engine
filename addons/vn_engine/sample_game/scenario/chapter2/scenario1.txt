@@ -1,9 +1,27 @@
-// Chapter two: a timed choice and two endings picked by a flag.
+// Chapter two: a short NVL scene, a timed choice and two endings picked by a flag.
 
 # start
 @chapter_title "Chapter Two" "One Last Choice" 2.0
 @bg bg_dusk with fade 1.0
-Narrator: Chapter two picks up right after chapter one. This part shows a timed choice and two different endings.
+Narrator: Chapter two picks up right after chapter one. This part shows an NVL page, a timed choice and two different endings.
+
+# nvl_scene
+@nvl
+Narrator: This is NVL mode. "@nvl" turned the text box into a full-screen page, and every line stays on it.
+Qaan: Character lines get their name in a column on the left. Narrator lines run across the whole width.
+Ely: The newest line is bright and the older ones fade, so you always know where you are.
+Narrator: When the page is full, it clears itself. "@nvl clear" clears it whenever you want, like a scene break.
+@nvl clear
+Narrator: Choices show up inside the page too, right under the last line.
+- Show me one more thing. -> nvl_more
+- Back to the text box. -> nvl_end
+
+# nvl_more
+Qaan: The choice you picked stays on the page. To make a whole game NVL, set "text_mode" to "nvl" in game.tres.
+
+# nvl_end
+@adv
+Narrator: "@adv" brought the text box back and cleared the page.
 
 # meet2
 @flow "Last Choice"

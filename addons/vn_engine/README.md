@@ -22,8 +22,9 @@ engine, it does nothing.
 3. Run that scene.
 
 The sample game is very small. Two chapters of text with choices, flags
-and two endings. You don't need to enable the plugin to play it in the
-editor.
+and two endings. Chapter two also has a short NVL scene, where the text
+fills the whole screen like a page. You don't need to enable the plugin
+to play it in the editor.
 
 ## Add it to your own game
 
