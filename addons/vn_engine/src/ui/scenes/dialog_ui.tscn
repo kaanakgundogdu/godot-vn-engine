@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://ck4ghbsetqnae"]
+[gd_scene load_steps=5 format=3 uid="uid://ck4ghbsetqnae"]
 
 [ext_resource type="Script" uid="uid://c5bwrii57k4gk" path="res://addons/vn_engine/src/ui/dialog_ui.gd" id="1_0qifp"]
+[ext_resource type="PackedScene" path="res://addons/vn_engine/src/ui/scenes/nvl_page.tscn" id="2_nvlpg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.05, 0.05, 0.09, 0.85)
@@ -37,6 +38,9 @@ grow_vertical = 2
 script = ExtResource("1_0qifp")
 dialog_label = NodePath("BackgroundBox/MarginContainer/VBoxContainer/DialogText")
 speaker_label = NodePath("NameRow/NamePlate/SpeakerLabel")
+
+[node name="NvlPage" parent="." instance=ExtResource("2_nvlpg")]
+layout_mode = 1
 
 [node name="BackgroundBox" type="Panel" parent="."]
 layout_mode = 1

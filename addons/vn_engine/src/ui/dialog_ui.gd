@@ -7,6 +7,7 @@ const NAME_COLOR_FALLBACK: Color = Color.WHITE
 const BOX_FADE_TIME: float = 0.2
 const BOX_SLIDE_DISTANCE: float = 12.0
 const NAME_FADE_TIME: float = 0.12
+const MODE_FADE_TIME: float = 0.25
 
 @export var runner: VNEngineStoryRunner
 @export var dialog_label: RichTextLabel
@@ -20,6 +21,7 @@ var _text_tween: Tween
 var _indicator_tween: Tween
 var _box_tween: Tween
 var _name_tween: Tween
+var _mode_tween: Tween
 var _box_fading_out: bool = false
 var _box_rest_position: Vector2 = Vector2.ZERO
 var _last_speaker_text: String = ""
@@ -37,21 +39,30 @@ var _at_click: bool = false
 
 var _name_plate_style: StyleBoxFlat
 
+var _active_label: RichTextLabel
+var _nvl_on: bool = false
+
 @onready var auto_timer: Timer = $AutoTimer
 @onready var background_box: Panel = $BackgroundBox
 @onready var name_row: HBoxContainer = $NameRow
 @onready var name_plate: PanelContainer = $NameRow/NamePlate
 @onready var continue_indicator: Label = $ContinueIndicator
+@onready var nvl_page: VNEngineNvlPage = $NvlPage
 
 
 func _ready() -> void:
 	hide()
+	_active_label = dialog_label
+	nvl_page.dialog = self
 
 	if runner:
 		runner.register_manager(self)
 		runner.dialog_started.connect(_on_dialog_started)
 		runner.story_ended.connect(_on_story_ended)
 		runner.mode_changed.connect(_on_mode_changed)
+		runner.state_restored.connect(_on_state_restored)
+		runner.text_mode_changed.connect(_on_text_mode_changed)
+		runner.nvl_page_cleared.connect(_on_nvl_page_cleared)
 
 	if auto_timer and not auto_timer.timeout.is_connected(_on_auto_timer_timeout):
 		auto_timer.timeout.connect(_on_auto_timer_timeout)
@@ -67,6 +78,11 @@ func _ready() -> void:
 
 	if name_row:
 		name_row.alignment = BoxContainer.ALIGNMENT_CENTER if _dialog_name_align() == "center" else BoxContainer.ALIGNMENT_BEGIN
+
+	if background_box:
+		var box_style: StyleBox = background_box.get_theme_stylebox("panel")
+		if box_style is StyleBoxFlat:
+			nvl_page.set_backdrop_color((box_style as StyleBoxFlat).bg_color)
 
 	VNEngineMain.settings().changed.connect(_on_settings_changed)
 	_apply_window_opacity()
@@ -96,28 +112,47 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	if is_ui_hidden:
 		toggle_ui()
 
+	if runner.is_nvl() != _nvl_on:
+		_switch_mode(runner.is_nvl(), false)
+
 	_set_box_visible(true)
 	_hide_continue_indicator()
 	_reset_reveal()
 	auto_timer.stop()
 
+	if _nvl_on:
+		_sync_nvl_page()
+
 	if node.text == "" and not runner.current_choices.is_empty():
-		_show_choice_prompt()
+		if _nvl_on:
+			_on_text_finished()
+		else:
+			_active_label = dialog_label
+			_show_choice_prompt()
 		return
 
-	_apply_speaker(node.speaker_id)
-	_apply_seen_color()
-
-	dialog_label.visible_characters = 0
-
 	var markup: Dictionary = VNEngineTextMarkup.parse(runner.current_text)
-	dialog_label.text = String(markup.get("text", ""))
+	var text: String = String(markup.get("text", ""))
+
+	if _nvl_on:
+		if not nvl_page.fits(node.speaker_id, text, nvl_page.estimate_choices_height(runner.current_choices.size())):
+			runner.clear_nvl_page()
+		_active_label = nvl_page.add_entry(node.speaker_id, text, "line")
+		_apply_seen_color()
+		_active_label.visible_characters = 0
+	else:
+		_active_label = dialog_label
+		_apply_speaker(node.speaker_id)
+		_apply_seen_color()
+		_active_label.visible_characters = 0
+		_active_label.text = text
+
 	_events = markup.get("events", [])
 	_no_wait = bool(markup.get("no_wait", false))
 
 	_maybe_play_auto_voice(node)
 
-	_total_chars = dialog_label.get_parsed_text().length()
+	_total_chars = _active_label.get_parsed_text().length()
 	_typing = true
 	_build_chain()
 
@@ -144,7 +179,7 @@ func _build_chain() -> void:
 	_kill_text_tween()
 	var text_speed: float = VNEngineMain.settings().text_speed
 	var skipping: bool = runner != null and runner.is_skip
-	var pos: int = dialog_label.visible_characters
+	var pos: int = _active_label.visible_characters
 	if pos < 0 or pos > _total_chars:
 		pos = _total_chars
 	var mult: float = _speed_mult
@@ -157,7 +192,7 @@ func _build_chain() -> void:
 			var step_time: float = (at - pos) * text_speed / mult
 			if skipping:
 				step_time = step_time / 10.0
-			_text_tween.tween_property(dialog_label, "visible_characters", at, step_time)
+			_text_tween.tween_property(_active_label, "visible_characters", at, step_time)
 			pos = at
 		var value: float = float(event.get("value", 0.0))
 		match String(event.get("type", "")):
@@ -180,7 +215,7 @@ func _build_chain() -> void:
 	var duration: float = maxf((_total_chars - pos) * text_speed / mult, 0.01)
 	if skipping:
 		duration = duration / 10.0
-	_text_tween.tween_property(dialog_label, "visible_characters", _total_chars, duration)
+	_text_tween.tween_property(_active_label, "visible_characters", _total_chars, duration)
 	_text_tween.tween_callback(_finish_line)
 
 
@@ -217,7 +252,7 @@ func _reveal_to_next_stop() -> void:
 			_speed_mult = value if value > 0.0 else 1.0
 		elif type == "click":
 			var at: int = clampi(int(event.get("at", 0)), 0, _total_chars)
-			dialog_label.visible_characters = maxi(dialog_label.visible_characters, at)
+			_active_label.visible_characters = maxi(_active_label.visible_characters, at)
 			_stop_at_click(i)
 			return
 	_reveal_to_end()
@@ -234,7 +269,7 @@ func _reveal_to_end() -> bool:
 func _finish_line() -> bool:
 	_typing = false
 	_at_click = false
-	dialog_label.visible_characters = _total_chars
+	_active_label.visible_characters = _total_chars
 	if _no_wait and runner.current_choices.is_empty():
 		line_revealed.emit()
 		runner.next_node()
@@ -252,7 +287,7 @@ func _apply_speaker(speaker_id: String) -> void:
 	else:
 		var speaker_changed: bool = speaker_text != _last_speaker_text
 		speaker_label.text = speaker_text
-		var name_color: Color = _speaker_name_color(speaker_id)
+		var name_color: Color = speaker_name_color(speaker_id)
 		speaker_label.add_theme_color_override("font_color", name_color)
 		_apply_name_plate_style(name_color)
 		if name_row:
@@ -271,6 +306,8 @@ func clear_text() -> void:
 	_last_speaker_text = ""
 	if name_row:
 		name_row.hide()
+	if _nvl_on and runner != null:
+		runner.clear_nvl_page()
 
 
 func _show_choice_prompt() -> void:
@@ -428,7 +465,11 @@ func _speaker_name(speaker_id: String) -> String:
 	return db.display_name_of(speaker_id)
 
 
-func _speaker_name_color(speaker_id: String) -> Color:
+func speaker_display_name(speaker_id: String) -> String:
+	return "" if _is_narrator(speaker_id) else _speaker_name(speaker_id)
+
+
+func speaker_name_color(speaker_id: String) -> Color:
 	if not _dialog_use_character_colors():
 		return NAME_COLOR_FALLBACK
 	if runner == null or runner.ctx == null or runner.ctx.characters == null:
@@ -468,7 +509,7 @@ func _set_box_visible(value: bool) -> void:
 			return
 		_box_rest_position = position
 		modulate.a = 0.0
-		position = _box_rest_position + Vector2(0.0, BOX_SLIDE_DISTANCE)
+		position = _box_rest_position + Vector2(0.0, _box_slide_distance())
 		var time: float = _animation_time(BOX_FADE_TIME)
 		_box_tween = create_tween().set_parallel(true)
 		_box_tween.tween_property(self, "modulate:a", 1.0, time)
@@ -486,7 +527,7 @@ func _set_box_visible(value: bool) -> void:
 	var fade_time: float = _animation_time(BOX_FADE_TIME)
 	_box_tween = create_tween().set_parallel(true)
 	_box_tween.tween_property(self, "modulate:a", 0.0, fade_time)
-	_box_tween.tween_property(self, "position", _box_rest_position + Vector2(0.0, BOX_SLIDE_DISTANCE), fade_time)
+	_box_tween.tween_property(self, "position", _box_rest_position + Vector2(0.0, _box_slide_distance()), fade_time)
 	_box_tween.chain().tween_callback(_on_box_faded_out)
 
 
@@ -518,10 +559,10 @@ func _fade_in_name_plate() -> void:
 
 func _apply_seen_color() -> void:
 	var ui_def: VNEngineUiDef = VNEngineMain.game().get_ui()
-	if ui_def.mark_seen_text and VNEngineMain.settings().mark_read_text and runner != null and runner.line_seen_before:
-		dialog_label.add_theme_color_override("default_color", ui_def.seen_text_color)
+	if not _nvl_on and ui_def.mark_seen_text and VNEngineMain.settings().mark_read_text and runner != null and runner.line_seen_before:
+		_active_label.add_theme_color_override("default_color", ui_def.seen_text_color)
 	else:
-		dialog_label.remove_theme_color_override("default_color")
+		_active_label.remove_theme_color_override("default_color")
 
 
 func _dialog_name_align() -> String:
@@ -562,20 +603,22 @@ func _on_text_finished() -> void:
 
 
 func _show_continue_indicator() -> void:
-	if continue_indicator == null:
+	var indicator: Label = nvl_page.continue_indicator if _nvl_on else continue_indicator
+	if indicator == null:
 		return
-	continue_indicator.show()
-	continue_indicator.modulate.a = 1.0
+	indicator.show()
+	indicator.modulate.a = 1.0
 	if _indicator_tween and _indicator_tween.is_valid():
 		_indicator_tween.kill()
 	_indicator_tween = create_tween().set_loops()
-	_indicator_tween.tween_property(continue_indicator, "modulate:a", 0.25, 0.6)
-	_indicator_tween.tween_property(continue_indicator, "modulate:a", 1.0, 0.6)
+	_indicator_tween.tween_property(indicator, "modulate:a", 0.25, 0.6)
+	_indicator_tween.tween_property(indicator, "modulate:a", 1.0, 0.6)
 
 
 func _hide_continue_indicator() -> void:
 	if _indicator_tween and _indicator_tween.is_valid():
 		_indicator_tween.kill()
+	nvl_page.continue_indicator.hide()
 	if continue_indicator == null:
 		return
 	continue_indicator.hide()
@@ -643,9 +686,110 @@ func _apply_window_opacity() -> void:
 		return
 	var opacity: float = clampf(VNEngineMain.settings().window_opacity, 0.0, 1.0)
 	background_box.self_modulate = Color(1.0, 1.0, 1.0, opacity)
+	nvl_page.backdrop.self_modulate = Color(1.0, 1.0, 1.0, opacity)
 
 
 func _restart_text_tween() -> void:
 	if not _typing or _at_click:
 		return
 	_build_chain()
+
+
+func _box_slide_distance() -> float:
+	return 0.0 if _nvl_on else BOX_SLIDE_DISTANCE
+
+
+func _on_text_mode_changed(mode: String) -> void:
+	_switch_mode(mode == "nvl", true)
+
+
+func _on_nvl_page_cleared() -> void:
+	if _active_label != dialog_label:
+		if _typing:
+			_reset_reveal()
+			_hide_continue_indicator()
+		_active_label = dialog_label
+	nvl_page.clear()
+
+
+func _on_state_restored(_state: VNEngineStoryState) -> void:
+	if runner.is_nvl() != _nvl_on:
+		_switch_mode(runner.is_nvl(), true)
+	if not _nvl_on:
+		return
+	_reset_reveal()
+	_hide_continue_indicator()
+	_active_label = dialog_label
+	nvl_page.clear()
+	_sync_nvl_page()
+
+
+func _sync_nvl_page() -> void:
+	if _active_label != dialog_label and is_instance_valid(_active_label):
+		_active_label.remove_theme_color_override("default_color")
+	var expected: Array[Dictionary] = runner.state.nvl_page
+	if _same_entries(nvl_page.entries(), expected):
+		return
+	nvl_page.clear()
+	for entry in expected:
+		nvl_page.add_entry(String(entry.get("speaker", "")), String(entry.get("text", "")), String(entry.get("kind", "line")))
+
+
+func _same_entries(shown: Array[Dictionary], expected: Array[Dictionary]) -> bool:
+	if shown.size() != expected.size():
+		return false
+	for i in shown.size():
+		for key in ["speaker", "text", "kind"]:
+			if String(shown[i].get(key, "")) != String(expected[i].get(key, "")):
+				return false
+	return true
+
+
+func _switch_mode(nvl: bool, animate: bool) -> void:
+	if _mode_tween != null and _mode_tween.is_valid():
+		_mode_tween.kill()
+		_settle_mode_visuals()
+	_reset_reveal()
+	_hide_continue_indicator()
+	_nvl_on = nvl
+	_active_label = dialog_label
+	var fade: bool = animate and visible and _animations_enabled()
+	var time: float = _animation_time(MODE_FADE_TIME)
+	if nvl:
+		nvl_page.clear()
+		nvl_page.show()
+		if fade:
+			nvl_page.modulate.a = 0.0
+			_mode_tween = create_tween().set_parallel(true)
+			_mode_tween.tween_property(nvl_page, "modulate:a", 1.0, time)
+			_mode_tween.tween_property(background_box, "modulate:a", 0.0, time)
+			_mode_tween.tween_property(name_row, "modulate:a", 0.0, time)
+			_mode_tween.chain().tween_callback(_settle_mode_visuals)
+			return
+	else:
+		background_box.show()
+		if fade:
+			background_box.modulate.a = 0.0
+			name_row.modulate.a = 0.0
+			_mode_tween = create_tween().set_parallel(true)
+			_mode_tween.tween_property(background_box, "modulate:a", 1.0, time)
+			_mode_tween.tween_property(name_row, "modulate:a", 1.0, time)
+			_mode_tween.tween_property(nvl_page, "modulate:a", 0.0, time)
+			_mode_tween.chain().tween_callback(_settle_mode_visuals)
+			return
+	_settle_mode_visuals()
+
+
+func _settle_mode_visuals() -> void:
+	nvl_page.modulate.a = 1.0
+	background_box.modulate.a = 1.0
+	name_row.modulate.a = 1.0
+	nvl_page.visible = _nvl_on
+	background_box.visible = not _nvl_on
+	if _nvl_on:
+		name_row.hide()
+		dialog_label.text = ""
+		speaker_label.text = ""
+		_last_speaker_text = ""
+	else:
+		nvl_page.clear()

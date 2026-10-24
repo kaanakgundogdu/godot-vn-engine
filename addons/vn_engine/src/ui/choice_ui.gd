@@ -10,6 +10,12 @@ const PICK_GLOW_TIME: float = 0.12
 const PICK_GLOW_COLOR: Color = Color(1.3, 1.3, 1.3)
 const OTHERS_FADE_TIME: float = 0.15
 const CHOSEN_DIM: Color = Color(0.65, 0.65, 0.65)
+const NVL_LIT: Color = Color(1.35, 1.35, 1.35)
+const NVL_DISABLED_ALPHA: float = 0.45
+const NVL_ROW_PAD: float = 4.0
+const NVL_DIAL_SIZE: Vector2 = Vector2(64, 64)
+const NVL_LINE_SEPARATION: int = 6
+const DIAL_SIZE: Vector2 = Vector2(88, 88)
 
 @export var runner: VNEngineStoryRunner
 @export var button_container: VBoxContainer
@@ -23,6 +29,8 @@ var _enter_tween: Tween
 var _pick_tween: Tween
 var _is_locked: bool = false
 var _build_id: int = 0
+var _nvl_box: VBoxContainer = null
+var _nvl_texts: Dictionary = {}
 
 
 func _ready() -> void:
@@ -71,6 +79,9 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		vars = runner.state.flags
 
 	var created_labels: Array[RichTextLabel] = []
+	var nvl_page: VNEngineNvlPage = null
+	if runner != null and runner.is_nvl() and runner.ctx != null and runner.ctx.dialog_ui != null:
+		nvl_page = runner.ctx.dialog_ui.nvl_page
 
 	var box_width: float = 1100.0
 	if button_container:
@@ -78,6 +89,14 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 	var content_width := maxf(box_width - 32.0, 10.0)
 
 	for choice in choices:
+		if nvl_page != null:
+			var nvl_text: String = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars))
+			var nvl_btn: Button = _make_nvl_button(choice, nvl_text, vars, ui_def, chapter_id, save_data, created_labels)
+			_nvl_box = nvl_page.choice_container()
+			_nvl_box.add_child(nvl_btn)
+			_nvl_texts[choice] = nvl_text
+			_choice_buttons[choice] = nvl_btn
+			continue
 		var btn := Button.new()
 		btn.text = ""
 		btn.custom_minimum_size.y = 72
@@ -128,7 +147,27 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 			_choice_timer.start()
 
 		_timer_dial.set_time(timer_seconds, timer_seconds)
+		if nvl_page != null:
+			_timer_dial.custom_minimum_size = NVL_DIAL_SIZE
+			_timer_dial.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			remove_child(_timer_dial)
+			_nvl_box.add_child(_timer_dial)
 		_timer_dial.show()
+
+	if nvl_page != null:
+		hide()
+		await get_tree().process_frame
+		if build_id != _build_id:
+			return
+		for label in created_labels:
+			var nvl_btn := label.get_parent() as Button
+			if nvl_btn:
+				nvl_btn.custom_minimum_size.y = label.get_content_height() + NVL_ROW_PAD
+		if ui_def.ui_animations:
+			await get_tree().process_frame
+			if build_id == _build_id and not _is_locked:
+				_play_nvl_enter_animation(ui_def.ui_animation_scale)
+		return
 
 	await get_tree().process_frame
 	for label in created_labels:
@@ -142,6 +181,62 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		await get_tree().process_frame
 		if build_id == _build_id and not _is_locked:
 			_play_enter_animation(ui_def.ui_animation_scale)
+
+
+func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictionary, ui_def: VNEngineUiDef, chapter_id: String, save_data: VNEngineSaveData, labels: Array[RichTextLabel]) -> Button:
+	var btn := Button.new()
+	btn.flat = true
+	btn.focus_mode = Control.FOCUS_ALL
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.custom_minimum_size.y = 24.0
+	for style_name in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		btn.add_theme_stylebox_override(style_name, StyleBoxEmpty.new())
+
+	var label := RichTextLabel.new()
+	label.bbcode_enabled = true
+	label.fit_content = true
+	label.scroll_active = false
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_constant_override("line_separation", NVL_LINE_SEPARATION)
+	label.text = "> " + text
+	if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
+		label.modulate = CHOSEN_DIM
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	btn.add_child(label)
+	labels.append(label)
+
+	if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
+		btn.disabled = true
+	if ui_def.ui_animations:
+		btn.modulate.a = 0.0
+	_refresh_nvl_button(btn)
+
+	btn.pressed.connect(_on_button_pressed.bind(choice))
+	var refresh: Callable = _refresh_nvl_button.bind(btn)
+	btn.mouse_entered.connect(refresh)
+	btn.mouse_exited.connect(refresh)
+	btn.focus_entered.connect(refresh)
+	btn.focus_exited.connect(refresh)
+	return btn
+
+
+func _refresh_nvl_button(btn: Button) -> void:
+	var alpha: float = btn.modulate.a
+	if btn.disabled:
+		btn.modulate = Color(1.0, 1.0, 1.0, minf(alpha, NVL_DISABLED_ALPHA))
+		return
+	var tint: Color = NVL_LIT if (btn.is_hovered() or btn.has_focus()) else Color.WHITE
+	btn.modulate = Color(tint.r, tint.g, tint.b, alpha)
+
+
+func _play_nvl_enter_animation(time_scale: float) -> void:
+	var index: int = 0
+	_enter_tween = create_tween().set_parallel(true)
+	for btn: Button in _choice_buttons.values():
+		var target_alpha: float = NVL_DISABLED_ALPHA if btn.disabled else 1.0
+		_enter_tween.tween_property(btn, "modulate:a", target_alpha, ENTER_TIME * time_scale).set_delay(index * ENTER_STAGGER * time_scale)
+		index += 1
 
 
 func _play_enter_animation(time_scale: float) -> void:
@@ -191,7 +286,7 @@ func _on_button_pressed(choice: VNEngineChoiceOption) -> void:
 
 	var ui_def: VNEngineUiDef = VNEngineMain.game().get_ui()
 	var picked: Button = _choice_buttons.get(choice)
-	if not ui_def.ui_animations or picked == null:
+	if not ui_def.ui_animations or picked == null or _nvl_box != null:
 		_finish_choice(choice)
 		return
 
@@ -211,7 +306,14 @@ func _on_button_pressed(choice: VNEngineChoiceOption) -> void:
 
 func _finish_choice(choice: VNEngineChoiceOption) -> void:
 	hide()
+	var nvl_text: String = String(_nvl_texts.get(choice, ""))
+	var was_nvl: bool = _nvl_box != null
 	_clear_buttons()
+	if was_nvl and runner:
+		runner.add_nvl_choice(nvl_text)
+		var dialog: VNEngineDialogUI = runner.ctx.dialog_ui if runner.ctx != null else null
+		if dialog != null and dialog.nvl_page != null:
+			dialog.nvl_page.add_entry("", nvl_text, "choice")
 	if runner:
 		runner.make_choice(choice.target_index)
 
@@ -235,6 +337,18 @@ func _clear_buttons() -> void:
 		_choice_timer.stop()
 	_choice_timer_target = null
 	_timer_dial.hide()
+	if _timer_dial.get_parent() != self:
+		if _timer_dial.get_parent() != null:
+			_timer_dial.get_parent().remove_child(_timer_dial)
+		add_child(_timer_dial, false, Node.INTERNAL_MODE_FRONT)
+		_timer_dial.custom_minimum_size = DIAL_SIZE
+		_timer_dial.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	if _nvl_box != null and is_instance_valid(_nvl_box):
+		for child in _nvl_box.get_children():
+			_nvl_box.remove_child(child)
+			child.queue_free()
+	_nvl_box = null
+	_nvl_texts.clear()
 	for child in button_container.get_children():
 		child.queue_free()
 

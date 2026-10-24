@@ -211,6 +211,12 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@choice_timer' default_index must be an integer >= 0: '%s'" % ct_tokens[1]))
 		"animate":
 			_lint_animate(args, line_no, script)
+		"nvl":
+			if args.strip_edges().to_lower() not in ["", "clear"]:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@nvl' only accepts 'clear': '%s'" % args))
+		"adv":
+			if args.strip_edges() != "":
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@adv' takes no arguments: '%s'" % args))
 		"shake", "end":
 			pass
 

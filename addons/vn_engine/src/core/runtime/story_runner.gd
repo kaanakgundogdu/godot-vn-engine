@@ -6,6 +6,8 @@ signal dialog_started(node: VNEngineStoryNode)
 signal choices_requested(choices: Array[VNEngineChoiceOption])
 signal story_ended()
 signal state_restored(state: VNEngineStoryState)
+signal text_mode_changed(mode: String)
+signal nvl_page_cleared
 
 signal parse_diagnostics_ready(diagnostics: Array)
 
@@ -58,6 +60,8 @@ var pending_choice_timer: Dictionary = {}
 var current_choices: Array[VNEngineChoiceOption] = []
 var current_text: String = ""
 
+var _line_paged: bool = false
+
 const RUNAWAY_LIMIT := 256
 
 const DEFERRED_COMMANDS := ["jump", "jump_if", "call", "return", "scene", "end", "goto_chapter", "credits"]
@@ -108,6 +112,7 @@ func start_story(file_path: String, start_index: int = 0) -> void:
 	if not _load_script(file_path):
 		return
 	history_stack.clear()
+	clear_nvl_page()
 	play_node(start_index)
 
 func _load_script(file_path: String) -> bool:
@@ -152,6 +157,7 @@ func play_node(index: int) -> void:
 
 	current_index = index
 	_advancing = false
+	_line_paged = false
 	pending_choice_timer = {}
 	var node: VNEngineStoryNode = script_res.nodes[index]
 	current_choices.assign(node.choices)
@@ -271,6 +277,7 @@ func next_node() -> void:
 		return
 
 	_advancing = true
+	_page_current_line()
 	await _run_after_line_commands(current_node)
 	if not _advancing:
 		return
@@ -295,11 +302,50 @@ func make_choice(target_index: int) -> void:
 	var current_node: VNEngineStoryNode = get_current_node()
 	if current_node != null:
 		_advancing = true
+		_page_current_line()
 		await _run_after_line_commands(current_node)
 		if not _advancing:
 			return
 		_advancing = false
 	play_node(target_index)
+
+func effective_text_mode() -> String:
+	if state.text_mode != "":
+		return state.text_mode
+	var manifest: VNEngineGameManifest = VNEngineMain.game().get_manifest()
+	return manifest.text_mode if manifest != null else "adv"
+
+func is_nvl() -> bool:
+	return effective_text_mode() == "nvl"
+
+func set_text_mode(mode: String) -> void:
+	if mode == effective_text_mode():
+		return
+	state.text_mode = mode
+	clear_nvl_page()
+	text_mode_changed.emit(mode)
+
+func clear_nvl_page() -> void:
+	state.nvl_page.clear()
+	nvl_page_cleared.emit()
+
+func add_nvl_choice(text: String) -> void:
+	if not is_nvl():
+		return
+	_page_current_line()
+	state.nvl_page.append({"speaker": "", "text": text, "kind": "choice"})
+
+func _page_current_line() -> void:
+	if _line_paged:
+		return
+	_line_paged = true
+	var node: VNEngineStoryNode = get_current_node()
+	if node == null or not is_nvl():
+		return
+	var text: String = VNEngineTextMarkup.strip(current_text)
+	if text == "":
+		return
+	state.nvl_page.append({"speaker": node.speaker_id, "text": text, "kind": "line"})
 
 func get_current_node() -> VNEngineStoryNode:
 	if script_res == null or current_index < 0 or current_index >= script_res.nodes.size():
@@ -317,6 +363,7 @@ func execute_load_game(slot_id: int = 0) -> void:
 		end_ending_id = ""
 
 		history_stack.clear()
+		_line_paged = false
 
 		var file_to_load: String = state.current_file
 
@@ -353,6 +400,7 @@ func start_from_snapshot(data: Dictionary) -> void:
 	end_reason = EndReason.SCRIPT_EXHAUSTED
 	end_ending_id = ""
 	history_stack.clear()
+	_line_paged = false
 	pending_choice_timer = {}
 	state_restored.emit(state)
 
@@ -393,6 +441,7 @@ func _apply_history_entry(entry: Dictionary) -> void:
 
 	state.from_dict(snapshot)
 	_advancing = false
+	_line_paged = false
 
 	if target_history_len < state.history.size():
 		state.history.resize(target_history_len)

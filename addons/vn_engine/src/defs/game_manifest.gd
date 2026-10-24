@@ -29,6 +29,11 @@ extends Resource
 ## Credits screen definition.
 @export var credits: VNEngineCreditsDef
 
+@export_group("Text")
+## How dialogue is shown: "adv" is a text box at the bottom, "nvl" is a
+## full-screen page. Scenarios can switch with @nvl and @adv.
+@export_enum("adv", "nvl") var text_mode: String = "adv"
+
 @export_group("Screens")
 ## Title screen definition.
 @export var title: VNEngineTitleScreenDef

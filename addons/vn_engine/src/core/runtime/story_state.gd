@@ -25,6 +25,10 @@ var history: Array[Dictionary] = []
 
 var flow_path: Array[String] = []
 
+var text_mode: String = ""
+
+var nvl_page: Array[Dictionary] = []
+
 func set_flag(flag_name: String, value: Variant) -> void:
 	flags[flag_name.to_lower()] = value
 
@@ -49,6 +53,8 @@ func to_dict(include_history: bool = true) -> Dictionary:
 		"seen_choices": seen_choices.duplicate(true),
 		"call_stack": call_stack.duplicate(true),
 		"flow_path": flow_path.duplicate(),
+		"text_mode": text_mode,
+		"nvl_page": nvl_page.duplicate(true),
 	}
 	if include_history:
 		data["history"] = history.duplicate(true)
@@ -84,6 +90,9 @@ func from_dict(data: Dictionary) -> void:
 	if new_flow_path is Array:
 		for item in new_flow_path:
 			flow_path.append(String(item))
+
+	text_mode = String(data.get("text_mode", ""))
+	nvl_page = _to_dict_array(data.get("nvl_page", []))
 
 	if data.has("history"):
 		history = _to_dict_array(data.get("history", []))
