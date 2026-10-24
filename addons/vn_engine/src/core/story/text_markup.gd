@@ -1,6 +1,8 @@
 class_name VNEngineTextMarkup
 extends RefCounted
 
+const VOID_TAGS: Array[String] = ["lb", "rb", "br", "hr"]
+
 static var _bbcode_tag: RegEx = null
 
 
@@ -34,6 +36,52 @@ static func parse(text: String) -> Dictionary:
 
 static func strip(text: String) -> String:
 	return String(parse(text)["text"])
+
+
+static func slice_from(text: String, from: int) -> String:
+	if from <= 0:
+		return text
+	var open: Array[String] = []
+	var visible: int = 0
+	var i: int = 0
+	var n: int = text.length()
+	while i < n:
+		if text[i] == "[":
+			var close: int = text.find("]", i + 1)
+			if close != -1:
+				var content: String = text.substr(i + 1, close - i - 1)
+				if _is_bbcode_tag(content):
+					if content == "lb" or content == "rb":
+						if visible >= from:
+							break
+						visible += 1
+					elif content.begins_with("/"):
+						var name: String = _tag_name(content.substr(1))
+						for k in range(open.size() - 1, -1, -1):
+							if _tag_name(open[k]) == name:
+								open.remove_at(k)
+								break
+					elif not VOID_TAGS.has(_tag_name(content)):
+						open.append(content)
+					i = close + 1
+					continue
+		if visible >= from:
+			break
+		visible += 1
+		i += 1
+	var prefix: String = ""
+	for tag in open:
+		prefix += "[" + tag + "]"
+	return prefix + text.substr(i)
+
+
+static func _tag_name(content: String) -> String:
+	var end: int = content.length()
+	for mark in ["=", " "]:
+		var at: int = content.find(mark)
+		if at != -1 and at < end:
+			end = at
+	return content.substr(0, end)
 
 
 static func validate(text: String) -> PackedStringArray:

@@ -16,6 +16,7 @@ var _rows: Array[Control] = []
 var _entries: Array[Dictionary] = []
 var _heights: Array[float] = []
 var _measure_label: RichTextLabel
+var _measure_size: int = -1
 
 @onready var backdrop: Panel = $Backdrop
 @onready var content: VBoxContainer = $Content
@@ -71,6 +72,7 @@ func add_entry(speaker_id: String, text: String, kind: String) -> RichTextLabel:
 		name_label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.add_theme_color_override("font_color", _name_color(speaker_id))
+		VNEngineSettings.apply_text_scale(name_label, get_theme_default_font_size())
 		label.text = text
 		line.add_child(name_label)
 		line.add_child(label)
@@ -93,11 +95,31 @@ func clear() -> void:
 	continue_indicator.hide()
 
 
+func rebuild(source: Array[Dictionary], reserve: float = 0.0) -> Array[Dictionary]:
+	clear()
+	var start: int = 0
+	if content.size.y > 0.0:
+		while start < source.size() - 1 and _span_height(source, start) + reserve > content.size.y:
+			start += 1
+	var kept: Array[Dictionary] = []
+	for i in range(start, source.size()):
+		var entry: Dictionary = source[i]
+		kept.append(entry)
+		add_entry(String(entry.get("speaker", "")), String(entry.get("text", "")), String(entry.get("kind", "line")))
+	return kept
+
+
 func fits(speaker_id: String, text: String, reserve: float = 0.0) -> bool:
 	if _rows.is_empty() or content.size.y <= 0.0:
 		return true
 	var needed: float = _gap_before(speaker_id, "line") + _measure(_display_name(speaker_id), text, "line")
 	return used_height() + needed + reserve <= content.size.y
+
+
+func last_label() -> RichTextLabel:
+	if _rows.is_empty():
+		return null
+	return _rows.back().find_children("*", "RichTextLabel", true, false)[0] as RichTextLabel
 
 
 func choice_container() -> VBoxContainer:
@@ -133,6 +155,10 @@ func set_backdrop_color(color: Color) -> void:
 
 
 func _measure(speaker_name: String, text: String, kind: String) -> float:
+	var font_size: int = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
+	if font_size != _measure_size:
+		_measure_size = font_size
+		VNEngineSettings.apply_text_scale(_measure_label, get_theme_default_font_size())
 	var width: float = content.size.x
 	if kind == "choice" or speaker_name != "":
 		width -= text_column_x()
@@ -144,7 +170,22 @@ func _measure(speaker_name: String, text: String, kind: String) -> float:
 func _gap_before(speaker_id: String, kind: String) -> float:
 	if _entries.is_empty():
 		return 0.0
-	var last: Dictionary = _entries.back()
+	return _gap_after(_entries.back(), speaker_id, kind)
+
+
+func _span_height(source: Array[Dictionary], start: int) -> float:
+	var total: float = 0.0
+	for i in range(start, source.size()):
+		var entry: Dictionary = source[i]
+		var speaker_id: String = String(entry.get("speaker", ""))
+		var kind: String = String(entry.get("kind", "line"))
+		if i > start:
+			total += _gap_after(source[i - 1], speaker_id, kind)
+		total += _measure("" if kind == "choice" else _display_name(speaker_id), String(entry.get("text", "")), kind)
+	return total
+
+
+func _gap_after(last: Dictionary, speaker_id: String, kind: String) -> float:
 	var same: bool = _group_key(String(last.get("speaker", "")), String(last.get("kind", ""))) == _group_key(speaker_id, kind)
 	return ENTRY_GAP if same else SPEAKER_GAP
 
@@ -163,6 +204,7 @@ func _make_text_label() -> RichTextLabel:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_constant_override("line_separation", LINE_SEPARATION)
+	VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
 	return label
 
 

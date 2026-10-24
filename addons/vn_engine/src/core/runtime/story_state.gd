@@ -30,6 +30,15 @@ var text_mode: String = ""
 
 var nvl_page: Array[Dictionary] = []
 
+var rng_seed: int = 0
+var rng_state: int = 0
+
+func seed_rng(new_seed: int) -> void:
+	rng_seed = new_seed
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = new_seed
+	rng_state = rng.state
+
 func set_flag(flag_name: String, value: Variant) -> void:
 	flags[flag_name.to_lower()] = value
 
@@ -57,6 +66,8 @@ func to_dict(include_history: bool = true) -> Dictionary:
 		"flow_path": flow_path.duplicate(),
 		"text_mode": text_mode,
 		"nvl_page": nvl_page.duplicate(true),
+		"rng_seed": str(rng_seed),
+		"rng_state": str(rng_state),
 	}
 	if include_history:
 		data["history"] = history.duplicate(true)
@@ -97,6 +108,8 @@ func from_dict(data: Dictionary) -> void:
 
 	text_mode = String(data.get("text_mode", ""))
 	nvl_page = _to_dict_array(data.get("nvl_page", []))
+	rng_seed = str(data.get("rng_seed", "0")).to_int()
+	rng_state = str(data.get("rng_state", "0")).to_int()
 
 	if data.has("history"):
 		history = _to_dict_array(data.get("history", []))

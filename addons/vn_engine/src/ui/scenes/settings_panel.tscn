@@ -307,6 +307,33 @@ max_value = 1.0
 step = 0.01
 value = 0.5
 
+[node name="TextScaleRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TextScaleDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/TextScaleRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Text size"
+
+[node name="TextScaleSlider" type="HSlider" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/TextScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.8
+max_value = 1.4
+step = 0.1
+value = 1.0
+
+[node name="TextScaleLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows/TextScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+theme_type_variation = &"VNSmallLabel"
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
 [node name="TextSpeedPreview" type="RichTextLabel" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Text/TextScroll/TextRows"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 56)

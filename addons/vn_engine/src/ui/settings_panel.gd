@@ -31,6 +31,8 @@ var _draft: VNEngineSettings
 
 @onready var text_speed_slider: HSlider = %TextSpeedSlider
 @onready var text_speed_preview: RichTextLabel = %TextSpeedPreview
+@onready var text_scale_slider: HSlider = %TextScaleSlider
+@onready var text_scale_label: Label = %TextScaleLabel
 @onready var auto_speed_slider: HSlider = %AutoSpeedSlider
 @onready var skip_unread_toggle: CheckButton = %SkipUnreadToggle
 @onready var mark_read_text_toggle: CheckButton = %MarkReadTextToggle
@@ -56,6 +58,7 @@ func _ready() -> void:
 	mute_on_focus_loss_toggle.toggled.connect(_on_mute_on_focus_loss_toggled)
 
 	text_speed_slider.value_changed.connect(_on_text_speed_changed)
+	text_scale_slider.value_changed.connect(_on_text_scale_changed)
 	auto_speed_slider.value_changed.connect(_on_auto_speed_changed)
 	skip_unread_toggle.toggled.connect(_on_skip_unread_toggled)
 	mark_read_text_toggle.toggled.connect(_on_mark_read_text_toggled)
@@ -120,6 +123,8 @@ func _refresh_controls() -> void:
 	mute_on_focus_loss_toggle.set_pressed_no_signal(_draft.mute_on_focus_loss)
 
 	text_speed_slider.set_value_no_signal(_draft.text_speed_normalized)
+	text_scale_slider.set_value_no_signal(_draft.text_scale)
+	text_scale_label.text = "%d%%" % int(round(_draft.text_scale * 100.0))
 	auto_speed_slider.set_value_no_signal(_draft.auto_speed_normalized)
 	skip_unread_toggle.set_pressed_no_signal(_draft.skip_unread)
 	mark_read_text_toggle.set_pressed_no_signal(_draft.mark_read_text)
@@ -159,6 +164,7 @@ func _play_text_speed_preview() -> void:
 		_preview_tween.kill()
 
 	text_speed_preview.text = _PREVIEW_SENTENCE
+	_apply_preview_size()
 	text_speed_preview.visible_characters = 0
 	var total_chars: int = text_speed_preview.get_parsed_text().length()
 	var duration: float = maxf(total_chars * _draft.text_speed, 0.01)
@@ -219,6 +225,20 @@ func _on_mute_on_focus_loss_toggled(button_pressed: bool) -> void:
 
 func _on_text_speed_changed(value: float) -> void:
 	_draft.text_speed_normalized = value
+	_play_text_speed_preview()
+
+
+func _apply_preview_size() -> void:
+	var base: int = get_theme_default_font_size()
+	var size: int = int(round(base * clampf(_draft.text_scale, VNEngineSettings.TEXT_SCALE_MIN, VNEngineSettings.TEXT_SCALE_MAX)))
+	for key: String in ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
+		text_speed_preview.add_theme_font_size_override(key, size)
+	text_speed_preview.custom_minimum_size.y = maxf(56.0, size * 1.5)
+
+
+func _on_text_scale_changed(value: float) -> void:
+	_draft.text_scale = snappedf(value, VNEngineSettings.TEXT_SCALE_STEP)
+	text_scale_label.text = "%d%%" % int(round(_draft.text_scale * 100.0))
 	_play_text_speed_preview()
 
 

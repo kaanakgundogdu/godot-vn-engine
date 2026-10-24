@@ -42,6 +42,8 @@ var flag_list: VNEngineFlagList = null
 
 var _playtime_accum: float = 0.0
 
+var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
 var _jumped: bool = false
 
 var _advancing: bool = false
@@ -111,6 +113,7 @@ func register_manager(manager: Node) -> void:
 func start_story(file_path: String, start_index: int = 0) -> void:
 	if not _load_script(file_path):
 		return
+	_ensure_rng_seeded()
 	history_stack.clear()
 	clear_nvl_page()
 	play_node(start_index)
@@ -140,6 +143,18 @@ func _load_script(file_path: String) -> bool:
 	end_reason = EndReason.SCRIPT_EXHAUSTED
 	end_ending_id = ""
 	return true
+
+func _ensure_rng_seeded() -> void:
+	if state.rng_seed == 0 and state.rng_state == 0:
+		state.seed_rng(randi())
+
+func evaluate_assignment(expr: String) -> Variant:
+	_ensure_rng_seeded()
+	_rng.seed = state.rng_seed
+	_rng.state = state.rng_state
+	var value: Variant = VNEngineExpressionEvaluator.evaluate_assignment(expr, state.flags, _rng)
+	state.rng_state = _rng.state
+	return value
 
 func _process(delta: float) -> void:
 	_playtime_accum += delta

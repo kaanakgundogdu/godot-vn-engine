@@ -5,35 +5,21 @@ func command_name() -> String:
 	return "set_var"
 
 func apply(args: String, ctx: VNEngineCommandContext) -> void:
-	var parts := args.split(" ", false)
-	if parts.size() < 3:
+	var parts: PackedStringArray = VNEngineExpressionEvaluator.split_assignment(args)
+	if parts.is_empty():
 		VNEngineLog.warn("CmdSetVar", "Invalid set_var command format: %s" % args)
 		return
 
-	var var_name := parts[0].strip_edges()
-	var operator := parts[1].strip_edges()
-	var val_str := parts[2].strip_edges()
-
-	var parsed_val: Variant = val_str
-
-	if val_str.to_lower() == "true":
-		parsed_val = true
-	elif val_str.to_lower() == "false":
-		parsed_val = false
-	elif val_str.is_valid_float():
-		parsed_val = val_str.to_float()
-
+	var var_name: String = parts[0]
+	var operator: String = parts[1]
+	var value: Variant = ctx.runner.evaluate_assignment(parts[2])
 	var current_val: Variant = ctx.state.get_flag(var_name, 0)
 
 	match operator:
 		"=":
-			ctx.state.set_flag(var_name, parsed_val)
-		"+=":
-			ctx.state.set_flag(var_name, current_val + parsed_val)
-		"-=":
-			ctx.state.set_flag(var_name, current_val - parsed_val)
-		"*=":
-			ctx.state.set_flag(var_name, current_val * parsed_val)
+			ctx.state.set_flag(var_name, value)
+		"+=", "-=", "*=":
+			ctx.state.set_flag(var_name, VNEngineExpressionEvaluator.apply_op(current_val, operator, value))
 		"/=":
-			if parsed_val != 0:
-				ctx.state.set_flag(var_name, current_val / parsed_val)
+			if not VNEngineExpressionEvaluator.is_zero(value):
+				ctx.state.set_flag(var_name, VNEngineExpressionEvaluator.apply_op(current_val, operator, value))

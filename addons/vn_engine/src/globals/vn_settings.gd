@@ -9,6 +9,11 @@ const TEXT_SPEED_MAX := 0.10
 const AUTO_SPEED_MIN := 0.5
 const AUTO_SPEED_MAX := 5.0
 
+const TEXT_SCALE_MIN := 0.8
+const TEXT_SCALE_MAX := 1.4
+const TEXT_SCALE_STEP := 0.1
+const _RICH_SIZE_KEYS: Array[String] = ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]
+
 const WINDOW_SIZES: Array[Vector2i] = [
 	Vector2i(960, 540),
 	Vector2i(1280, 720),
@@ -32,6 +37,7 @@ var speaker_voice_volume: Dictionary = {}
 var mute_on_focus_loss: bool = false
 
 var text_speed: float = 0.05
+var text_scale: float = 1.0
 var auto_speed: float = 2.0
 var skip_unread: bool = false
 var mark_read_text: bool = true
@@ -75,6 +81,21 @@ static func commit(draft: VNEngineSettings) -> void:
 	current.changed.emit()
 
 
+static func scaled_font_size(base: int) -> int:
+	var settings: VNEngineSettings = VNEngineMain.settings()
+	var factor: float = 1.0 if settings == null else clampf(settings.text_scale, TEXT_SCALE_MIN, TEXT_SCALE_MAX)
+	return int(round(base * factor))
+
+
+static func apply_text_scale(node: Control, base: int) -> void:
+	var size: int = scaled_font_size(base)
+	if node is RichTextLabel:
+		for key: String in _RICH_SIZE_KEYS:
+			node.add_theme_font_size_override(key, size)
+	else:
+		node.add_theme_font_size_override("font_size", size)
+
+
 static func set_focus_muted(muted: bool) -> void:
 	var settings: VNEngineSettings = VNEngineMain.settings()
 	if settings == null:
@@ -99,6 +120,7 @@ func copy_from(other: VNEngineSettings) -> void:
 	speaker_voice_volume = other.speaker_voice_volume.duplicate()
 	mute_on_focus_loss = other.mute_on_focus_loss
 	text_speed = other.text_speed
+	text_scale = other.text_scale
 	auto_speed = other.auto_speed
 	skip_unread = other.skip_unread
 	mark_read_text = other.mark_read_text
@@ -251,6 +273,7 @@ func _to_dict() -> Dictionary:
 		"speaker_voice_volume": speaker_voice_volume,
 		"mute_on_focus_loss": mute_on_focus_loss,
 		"text_speed": text_speed,
+		"text_scale": text_scale,
 		"auto_speed": auto_speed,
 		"skip_unread": skip_unread,
 		"mark_read_text": mark_read_text,
@@ -301,6 +324,8 @@ func _load_from_disk() -> void:
 		mute_on_focus_loss = bool(loaded["mute_on_focus_loss"])
 	if loaded.has("text_speed"):
 		text_speed = float(loaded["text_speed"])
+	if loaded.has("text_scale"):
+		text_scale = snappedf(clampf(float(loaded["text_scale"]), TEXT_SCALE_MIN, TEXT_SCALE_MAX), TEXT_SCALE_STEP)
 	if loaded.has("auto_speed"):
 		auto_speed = float(loaded["auto_speed"])
 	if loaded.has("skip_unread"):

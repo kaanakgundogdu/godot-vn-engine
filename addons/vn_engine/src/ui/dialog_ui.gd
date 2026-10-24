@@ -3,6 +3,7 @@ extends Control
 
 signal line_revealed
 
+const ADV_BOX_GROWTH: float = 180.0
 const NAME_COLOR_FALLBACK: Color = Color.WHITE
 const BOX_FADE_TIME: float = 0.2
 const BOX_SLIDE_DISTANCE: float = 12.0
@@ -43,6 +44,15 @@ var _no_wait: bool = false
 var _total_chars: int = 0
 var _typing: bool = false
 var _at_click: bool = false
+var _stop_serial: int = 0
+var _full_text: String = ""
+var _parsed_text: String = ""
+var _base_events: Array = []
+var _page_starts: PackedInt32Array = PackedInt32Array()
+var _page_index: int = 0
+var _page_start: int = 0
+var _page_key: String = ""
+var _measure: RichTextLabel
 var _voice_waiting: bool = false
 var _voice_wait_id: int = 0
 var _voice_wait_serial: int = 0
@@ -50,6 +60,10 @@ var _voice_wait_serial: int = 0
 var _name_plate_style: StyleBoxFlat
 
 var _active_label: RichTextLabel
+var _applied_text_size: int = -1
+var _box_top_base: float = 0.0
+var _name_top_base: float = 0.0
+var _name_bottom_base: float = 0.0
 var _nvl_on: bool = false
 
 @onready var auto_timer: Timer = $AutoTimer
@@ -97,8 +111,19 @@ func _ready() -> void:
 		if box_style is StyleBoxFlat:
 			nvl_page.set_backdrop_color((box_style as StyleBoxFlat).bg_color)
 
+	_box_top_base = background_box.offset_top
+	_name_top_base = name_row.offset_top
+	_name_bottom_base = name_row.offset_bottom
+	dialog_label.scroll_active = false
+	_measure = dialog_label.duplicate(0) as RichTextLabel
+	_measure.visible = false
+	_measure.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_measure)
+	background_box.resized.connect(_on_layout_changed, CONNECT_DEFERRED)
+	get_viewport().size_changed.connect(_on_layout_changed, CONNECT_DEFERRED)
 	VNEngineMain.settings().changed.connect(_on_settings_changed)
 	_apply_window_opacity()
+	_apply_text_scale()
 
 	var vn_main: VNEngineMain = VNEngineMain.instance()
 	var card_overlay: VNEngineCardOverlay = vn_main.get_card_overlay() if vn_main != null else null
@@ -167,6 +192,8 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	_maybe_play_auto_voice(node)
 
 	_total_chars = _active_label.get_parsed_text().length()
+	if not _nvl_on:
+		_start_pages(text)
 	_typing = true
 	_build_chain()
 
@@ -182,6 +209,12 @@ func _reset_reveal() -> void:
 	_total_chars = 0
 	_typing = false
 	_at_click = false
+	_full_text = ""
+	_parsed_text = ""
+	_base_events = []
+	_page_starts = PackedInt32Array()
+	_page_index = 0
+	_page_start = 0
 
 
 func _kill_text_tween() -> void:
@@ -195,9 +228,13 @@ func _build_chain() -> void:
 	var text_speed: float = VNEngineMain.settings().text_speed
 	var skipping: bool = runner != null and runner.is_skip
 	var pos: int = _active_label.visible_characters
+	if pos >= 0:
+		pos += _page_start
 	if pos < 0 or pos > _total_chars:
 		pos = _total_chars
 	var mult: float = _speed_mult
+	var start: int = _page_start
+	var page_now: int = _page_index
 
 	_text_tween = create_tween()
 	for i in range(_event_index, _events.size()):
@@ -207,7 +244,7 @@ func _build_chain() -> void:
 			var step_time: float = (at - pos) * text_speed / mult
 			if skipping:
 				step_time = step_time / 10.0
-			_text_tween.tween_property(_active_label, "visible_characters", at, step_time)
+			_text_tween.tween_property(_active_label, "visible_characters", at - start, step_time)
 			pos = at
 		var value: float = float(event.get("value", 0.0))
 		match String(event.get("type", "")):
@@ -224,13 +261,23 @@ func _build_chain() -> void:
 				else:
 					_text_tween.tween_callback(_stop_at_click.bind(i))
 					return
+			"page":
+				var page: int = int(value)
+				if page > page_now and not skipping:
+					_text_tween.tween_callback(_stop_at_click.bind(i))
+					return
+				if page > page_now:
+					_text_tween.tween_callback(_turn_page.bind(page))
+					start = _page_starts[page]
+					page_now = page
+				_text_tween.tween_callback(_pass_event.bind(i, mult))
 			_:
 				_text_tween.tween_callback(_pass_event.bind(i, mult))
 
 	var duration: float = maxf((_total_chars - pos) * text_speed / mult, 0.01)
 	if skipping:
 		duration = duration / 10.0
-	_text_tween.tween_property(_active_label, "visible_characters", _total_chars, duration)
+	_text_tween.tween_property(_active_label, "visible_characters", _total_chars - start, duration)
 	_text_tween.tween_callback(_finish_line)
 
 
@@ -242,11 +289,13 @@ func _pass_event(index: int, mult: float) -> void:
 func _stop_at_click(index: int) -> void:
 	_event_index = index + 1
 	_at_click = true
+	_stop_serial += 1
 	_show_continue_indicator()
 	if runner != null and runner.is_auto:
 		var serial: int = _line_serial
+		var stop: int = _stop_serial
 		get_tree().create_timer(VNEngineMain.settings().auto_speed, false).timeout.connect(func():
-			if serial == _line_serial and _at_click and _event_index == index + 1 and runner.is_auto:
+			if serial == _line_serial and _at_click and stop == _stop_serial and runner.is_auto:
 				_resume_from_click()
 		)
 
@@ -254,6 +303,7 @@ func _stop_at_click(index: int) -> void:
 func _resume_from_click() -> void:
 	_at_click = false
 	_hide_continue_indicator()
+	_turn_page_if_due()
 	_build_chain()
 
 
@@ -265,9 +315,9 @@ func _reveal_to_next_stop() -> void:
 		if type == "speed":
 			var value: float = float(event.get("value", 0.0))
 			_speed_mult = value if value > 0.0 else 1.0
-		elif type == "click":
+		elif type == "click" or (type == "page" and int(event.get("value", 0)) > _page_index):
 			var at: int = clampi(int(event.get("at", 0)), 0, _total_chars)
-			_active_label.visible_characters = maxi(_active_label.visible_characters, at)
+			_active_label.visible_characters = maxi(_active_label.visible_characters, at - _page_start)
 			_stop_at_click(i)
 			return
 	_reveal_to_end()
@@ -284,13 +334,154 @@ func _reveal_to_end() -> bool:
 func _finish_line() -> bool:
 	_typing = false
 	_at_click = false
-	_active_label.visible_characters = _total_chars
+	if _page_index < _page_starts.size() - 1:
+		_turn_page(_page_starts.size() - 1)
+	_active_label.visible_characters = _total_chars - _page_start
 	if _no_wait and runner.current_choices.is_empty():
 		line_revealed.emit()
 		runner.next_node()
 		return true
 	_on_text_finished()
 	return false
+
+
+func _start_pages(text: String) -> void:
+	_full_text = text
+	_parsed_text = dialog_label.get_parsed_text()
+	_base_events = _events
+	_page_key = _layout_key()
+	_page_starts = _measure_pages(0)
+	_merge_page_events()
+
+
+func _measure_pages(anchor: int) -> PackedInt32Array:
+	var starts := PackedInt32Array([anchor])
+	var width: float = _text_width()
+	var limit: float = _text_limit()
+	if _measure == null or width < 1.0 or limit < 1.0 or _parsed_text == "" or DisplayServer.get_name() == "headless":
+		return starts
+	_measure.size = Vector2(width, limit)
+	while starts.size() < 100:
+		var start: int = starts[starts.size() - 1]
+		_measure.text = VNEngineTextMarkup.slice_from(_full_text, start)
+		_measure.visible_characters = -1
+		if _measure.get_parsed_text() != _parsed_text.substr(start):
+			starts = PackedInt32Array([anchor])
+			break
+		var count: int = _measure.get_line_count()
+		var next: int = -1
+		for line in range(1, count):
+			var bottom: float = _measure.get_line_offset(line + 1) if line + 1 < count else float(_measure.get_content_height())
+			if bottom > limit:
+				next = start + _measure.get_line_range(line).x
+				break
+		if next <= start or next >= _total_chars:
+			break
+		starts.append(next)
+	_measure.text = ""
+	return starts
+
+
+func _merge_page_events() -> void:
+	if _page_starts.size() < 2:
+		_events = _base_events
+		return
+	var merged: Array = []
+	var page: int = 1
+	for event in _base_events:
+		while page < _page_starts.size() and _page_starts[page] < int(event.get("at", 0)):
+			merged.append({"at": _page_starts[page], "type": "page", "value": float(page)})
+			page += 1
+		merged.append(event)
+	while page < _page_starts.size():
+		merged.append({"at": _page_starts[page], "type": "page", "value": float(page)})
+		page += 1
+	_events = merged
+
+
+func _turn_page(page: int) -> void:
+	_page_index = page
+	_page_start = _page_starts[page]
+	dialog_label.text = VNEngineTextMarkup.slice_from(_full_text, _page_start)
+	dialog_label.visible_characters = 0
+
+
+func _turn_page_if_due() -> void:
+	if _page_index + 1 >= _page_starts.size():
+		return
+	var shown: int = _active_label.visible_characters + _page_start
+	var next: int = _page_starts[_page_index + 1]
+	if shown >= 0 and _parsed_text.substr(shown, next - shown).strip_edges() == "":
+		_turn_page(_page_index + 1)
+
+
+func _text_width() -> float:
+	var margins: int = text_margin.get_theme_constant("margin_left") + text_margin.get_theme_constant("margin_right")
+	return background_box.size.x - margins
+
+
+func _text_limit() -> float:
+	var top: int = text_margin.get_theme_constant("margin_top")
+	var height: float = background_box.size.y - top - text_margin.get_theme_constant("margin_bottom")
+	if in_game_buttons == null:
+		return height
+	var origin: Vector2 = background_box.global_position + Vector2(text_margin.get_theme_constant("margin_left"), top)
+	if _box_tween != null and _box_tween.is_valid():
+		origin += _box_rest_position - position
+	var buttons: Rect2 = in_game_buttons.get_global_rect()
+	if buttons.position.x >= origin.x + _text_width() or buttons.end.x <= origin.x:
+		return height
+	if buttons.position.y <= origin.y or buttons.position.y >= origin.y + height:
+		return height
+	return buttons.position.y - origin.y
+
+
+func _layout_key() -> String:
+	return "%d:%d:%d" % [roundi(_text_width()), roundi(_text_limit()), _applied_text_size]
+
+
+func _refresh_pages() -> bool:
+	var key: String = _layout_key()
+	if key == _page_key:
+		return false
+	_page_key = key
+	if _nvl_on or _active_label != dialog_label or _full_text == "":
+		return false
+	var shown: int = dialog_label.visible_characters
+	shown = _total_chars if shown < 0 else mini(shown + _page_start, _total_chars)
+	var passed: int = 0
+	for i in mini(_event_index, _events.size()):
+		if String(_events[i].get("type", "")) != "page":
+			passed += 1
+	_page_starts = _measure_pages(_page_start)
+	var page: int = 0
+	for p in range(1, _page_starts.size()):
+		if _page_starts[p] < shown:
+			page = p
+	_merge_page_events()
+	var index: int = 0
+	var seen: int = 0
+	while index < _events.size():
+		var event: Dictionary = _events[index]
+		if String(event.get("type", "")) == "page":
+			if int(event.get("value", 0)) > page:
+				break
+		elif seen >= passed:
+			break
+		else:
+			seen += 1
+		index += 1
+	_event_index = index
+	_page_index = page
+	_page_start = _page_starts[page]
+	dialog_label.text = VNEngineTextMarkup.slice_from(_full_text, _page_start)
+	dialog_label.visible_characters = shown - _page_start
+	return true
+
+
+func _on_layout_changed() -> void:
+	if _refresh_pages():
+		_restart_text_tween()
 
 
 func _apply_speaker(speaker_id: String) -> void:
@@ -390,6 +581,10 @@ func _show_choice_prompt() -> void:
 		_apply_speaker(String(entry.get("speaker", "")))
 		_apply_seen_color()
 		dialog_label.text = text
+		_total_chars = dialog_label.get_parsed_text().length()
+		_start_pages(text)
+		if _page_starts.size() > 1:
+			_turn_page(_page_starts.size() - 1)
 		break
 
 	dialog_label.visible_characters = -1
@@ -789,9 +984,46 @@ func _is_input_locked() -> bool:
 
 func _on_settings_changed() -> void:
 	_apply_window_opacity()
+	_apply_text_scale()
+	_refresh_pages()
 	_restart_text_tween()
 	if auto_timer:
 		auto_timer.wait_time = VNEngineMain.settings().auto_speed
+
+
+func _apply_text_scale() -> void:
+	var base: int = get_theme_default_font_size()
+	var size: int = VNEngineSettings.scaled_font_size(base)
+	if size == _applied_text_size:
+		return
+	var first: bool = _applied_text_size < 0
+	_applied_text_size = size
+	VNEngineSettings.apply_text_scale(dialog_label, base)
+	VNEngineSettings.apply_text_scale(_measure, base)
+	var grow: float = round(ADV_BOX_GROWTH * maxf(float(size) / base - 1.0, 0.0))
+	background_box.offset_top = _box_top_base - grow
+	name_row.offset_top = _name_top_base - grow
+	name_row.offset_bottom = _name_bottom_base - grow
+	if first or not _nvl_on or runner == null or runner.state == null:
+		return
+	var typing_nvl: bool = _active_label != dialog_label and is_instance_valid(_active_label)
+	var shown: int = _active_label.visible_characters if typing_nvl else -1
+	var shown_entries: Array[Dictionary] = nvl_page.entries()
+	var pending: Array[Dictionary] = []
+	for i in range(runner.state.nvl_page.size(), shown_entries.size()):
+		pending.append(shown_entries[i])
+	_rebuild_nvl_page(nvl_page.estimate_choices_height(runner.current_choices.size()), pending)
+	if typing_nvl:
+		var last: RichTextLabel = nvl_page.last_label()
+		if last == null:
+			_active_label = dialog_label
+			return
+		_active_label = last
+		_active_label.visible_characters = shown
+		_total_chars = _active_label.get_parsed_text().length()
+		_apply_seen_color()
+	else:
+		_active_label = dialog_label
 
 
 func _apply_window_opacity() -> void:
@@ -843,9 +1075,16 @@ func _sync_nvl_page() -> void:
 	var expected: Array[Dictionary] = runner.state.nvl_page
 	if _same_entries(nvl_page.entries(), expected):
 		return
-	nvl_page.clear()
-	for entry in expected:
-		nvl_page.add_entry(String(entry.get("speaker", "")), String(entry.get("text", "")), String(entry.get("kind", "line")))
+	_rebuild_nvl_page(0.0, [] as Array[Dictionary])
+
+
+func _rebuild_nvl_page(reserve: float, pending: Array[Dictionary]) -> void:
+	var source: Array[Dictionary] = runner.state.nvl_page.duplicate()
+	source.append_array(pending)
+	var kept: Array[Dictionary] = nvl_page.rebuild(source, reserve)
+	var dropped: int = mini(source.size() - kept.size(), runner.state.nvl_page.size())
+	for i in dropped:
+		runner.state.nvl_page.remove_at(0)
 
 
 func _same_entries(shown: Array[Dictionary], expected: Array[Dictionary]) -> bool:

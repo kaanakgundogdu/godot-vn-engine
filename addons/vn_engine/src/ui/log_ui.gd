@@ -21,6 +21,10 @@ func _ready() -> void:
 	if runner:
 		runner.state_restored.connect(_on_state_restored)
 
+	var settings: VNEngineSettings = VNEngineMain.settings()
+	if settings != null:
+		settings.changed.connect(_on_settings_changed)
+
 
 func set_runner(r: VNEngineStoryRunner) -> void:
 	if runner == r:
@@ -108,6 +112,7 @@ func _build_entry(entry: Dictionary) -> Control:
 	text_label.scroll_active = false
 	text_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	VNEngineSettings.apply_text_scale(text_label, get_theme_default_font_size())
 
 	var display_text: String = text_raw
 	if is_narrator or speaker_id == "":
@@ -184,6 +189,11 @@ func _on_play_voice(speaker_id: String, line_id: String) -> void:
 
 
 func _on_state_restored(_state: VNEngineStoryState) -> void:
+	if visible:
+		_rebuild()
+
+
+func _on_settings_changed() -> void:
 	if visible:
 		_rebuild()
 

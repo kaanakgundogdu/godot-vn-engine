@@ -6,6 +6,11 @@ const _SET_VAR_OPS := ["=", "+=", "-=", "*=", "/="]
 const _FLOW_STOP_COMMANDS := ["jump", "call", "return", "end", "goto_chapter"]
 
 
+static func _is_lone_identifier(expr: String) -> bool:
+	var ids: PackedStringArray = VNEngineExpressionEvaluator.collect_identifiers(expr)
+	return ids.size() == 1 and expr.strip_edges().to_lower() == ids[0]
+
+
 static func _is_zero_literal(value_str: String) -> bool:
 	var trimmed: String = value_str.strip_edges()
 	if not trimmed.is_valid_float():
@@ -127,6 +132,10 @@ static func lint_flags(script: VNEngineStoryScript, flag_list: VNEngineFlagList)
 				var tokens: PackedStringArray = cmd_args.split(" ", false)
 				if tokens.size() >= 1:
 					_check_flag_id(tokens[0], cmd.get("line", 0), script, flag_list)
+				var parts: PackedStringArray = VNEngineExpressionEvaluator.split_assignment(cmd_args)
+				if not parts.is_empty() and VNEngineExpressionEvaluator.validate(parts[2]).is_empty() and not _is_lone_identifier(parts[2]):
+					for id in VNEngineExpressionEvaluator.collect_identifiers(parts[2]):
+						_check_flag_id(id, cmd.get("line", 0), script, flag_list)
 			elif cname == "jump_if":
 				var condition: String = _jump_if_condition(cmd)
 				if condition != "":
@@ -343,41 +352,34 @@ static func _lint_scene(args: String, line_no: int, script: VNEngineStoryScript)
 
 
 static func _lint_set_var(args: String, line_no: int, script: VNEngineStoryScript) -> void:
-	var tokens: PackedStringArray = args.split(" ", false)
-	if tokens.size() < 3:
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@set_var' expects <name> <op> <value>"))
-		return
-
-	var var_name: String = tokens[0]
-	var op: String = tokens[1]
-	var value_str: String = " ".join(tokens.slice(2))
-
-	if not var_name.is_valid_identifier():
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Invalid variable name: '%s'" % var_name))
-
-	if not _SET_VAR_OPS.has(op):
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Unknown operator: '%s'" % op))
-	elif op == "/=" and _is_zero_literal(value_str):
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Division by zero, the operation will not run"))
+	_lint_assignment("set_var", "variable", args, line_no, script)
 
 
 static func _lint_flag(args: String, line_no: int, script: VNEngineStoryScript) -> void:
-	var tokens: PackedStringArray = args.split(" ", false)
-	if tokens.size() < 3:
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@flag' expects <name> <op> <value>"))
+	_lint_assignment("flag", "flag", args, line_no, script)
+
+
+static func _lint_assignment(command: String, noun: String, args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var parts: PackedStringArray = VNEngineExpressionEvaluator.split_assignment(args)
+	if parts.is_empty():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' expects <name> <op> <value>" % command))
 		return
 
-	var flag_name: String = tokens[0]
-	var op: String = tokens[1]
-	var value_str: String = " ".join(tokens.slice(2))
+	var target: String = parts[0]
+	var op: String = parts[1]
+	var value_str: String = parts[2]
 
-	if not flag_name.is_valid_identifier():
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Invalid flag name: '%s'" % flag_name))
+	if not target.is_valid_identifier():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Invalid %s name: '%s'" % [noun, target]))
 
 	if not _SET_VAR_OPS.has(op):
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Unknown operator: '%s'" % op))
 	elif op == "/=" and _is_zero_literal(value_str):
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Division by zero, the operation will not run"))
+
+	_validate_expression(value_str, line_no, script, true)
+	if VNEngineExpressionEvaluator.has_zero_divisor(value_str):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Division by zero, the result will be 0"))
 
 
 static func _lint_goto_chapter(args: String, line_no: int, script: VNEngineStoryScript) -> void:
@@ -455,9 +457,11 @@ static func _lint_text_vars(text: String, line_no: int, script: VNEngineStoryScr
 			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Undefined flag: '%s'" % id.to_lower(), _suggest_flag(id, flag_list)))
 
 
-static func _validate_expression(expr: String, line_no: int, script: VNEngineStoryScript) -> void:
+static func _validate_expression(expr: String, line_no: int, script: VNEngineStoryScript, allow_rand: bool = false) -> void:
 	for msg in VNEngineExpressionEvaluator.validate(expr):
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, msg))
+	if not allow_rand and VNEngineExpressionEvaluator.uses_rand(expr):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'rand' cannot be used in a condition, store it first with '@set_var roll = rand(...)' and compare the variable"))
 
 
 static func _check_flag_id(id: String, line_no: int, script: VNEngineStoryScript, flag_list: VNEngineFlagList) -> void:

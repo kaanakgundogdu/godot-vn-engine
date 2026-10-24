@@ -31,6 +31,8 @@ var _is_locked: bool = false
 var _build_id: int = 0
 var _nvl_box: VBoxContainer = null
 var _nvl_texts: Dictionary = {}
+var _choice_labels: Array[RichTextLabel] = []
+var _applied_text_size: int = -1
 
 
 func _ready() -> void:
@@ -49,11 +51,42 @@ func _ready() -> void:
 	_timer_dial.hide()
 	add_child(_timer_dial, false, Node.INTERNAL_MODE_FRONT)
 
+	var settings: VNEngineSettings = VNEngineMain.settings()
+	if settings != null:
+		settings.changed.connect(_on_settings_changed)
+	_applied_text_size = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
+
 
 func _process(_delta: float) -> void:
 	if _choice_timer == null or _choice_timer.is_stopped():
 		return
 	_timer_dial.set_time(_choice_timer.time_left, _choice_timer.wait_time)
+
+
+func _on_settings_changed() -> void:
+	var size: int = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
+	if size == _applied_text_size:
+		return
+	_applied_text_size = size
+	var live: Array[RichTextLabel] = []
+	for label in _choice_labels:
+		if is_instance_valid(label):
+			VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
+			live.append(label)
+	if live.is_empty():
+		return
+	var build_id: int = _build_id
+	await get_tree().process_frame
+	if build_id != _build_id:
+		return
+	for label in live:
+		var btn := label.get_parent() as Button
+		if btn == null:
+			continue
+		if _nvl_box != null:
+			btn.custom_minimum_size.y = label.get_content_height() + NVL_ROW_PAD
+		else:
+			btn.custom_minimum_size.y = maxf(72.0, label.get_content_height() + 32.0)
 
 
 func _on_state_restored(_state: VNEngineStoryState) -> void:
@@ -69,6 +102,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 
 	_clear_buttons()
 	_build_id += 1
+	_applied_text_size = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
 	var build_id: int = _build_id
 	var ui_def: VNEngineUiDef = VNEngineMain.game().get_ui()
 	var chapter_id: String = runner.script_res.chapter_id if runner != null and runner.script_res != null else ""
@@ -111,6 +145,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		label.scroll_active = false
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
 		label.text = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars))
 		if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
 			label.modulate = CHOSEN_DIM
@@ -118,6 +153,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 16)
 		btn.add_child(label)
 		created_labels.append(label)
+		_choice_labels.append(label)
 
 		if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
 			btn.disabled = true
@@ -199,12 +235,14 @@ func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictiona
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_constant_override("line_separation", NVL_LINE_SEPARATION)
+	VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
 	label.text = "> " + text
 	if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
 		label.modulate = CHOSEN_DIM
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	btn.add_child(label)
 	labels.append(label)
+	_choice_labels.append(label)
 
 	if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
 		btn.disabled = true
@@ -231,6 +269,8 @@ func _refresh_nvl_button(btn: Button) -> void:
 
 
 func _play_nvl_enter_animation(time_scale: float) -> void:
+	if _choice_buttons.is_empty():
+		return
 	var index: int = 0
 	_enter_tween = create_tween().set_parallel(true)
 	for btn: Button in _choice_buttons.values():
@@ -240,6 +280,8 @@ func _play_nvl_enter_animation(time_scale: float) -> void:
 
 
 func _play_enter_animation(time_scale: float) -> void:
+	if button_container.get_child_count() == 0:
+		return
 	var index: int = 0
 	_enter_tween = create_tween().set_parallel(true)
 	for btn: Button in button_container.get_children():
@@ -329,6 +371,7 @@ func _clear_buttons() -> void:
 	_choice_timer_waiting = false
 	_is_locked = false
 	_choice_buttons.clear()
+	_choice_labels.clear()
 	if _enter_tween != null and _enter_tween.is_valid():
 		_enter_tween.kill()
 	if _pick_tween != null and _pick_tween.is_valid():
