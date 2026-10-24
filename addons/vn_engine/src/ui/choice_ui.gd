@@ -92,7 +92,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		label.scroll_active = false
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.text = choice.text
+		label.text = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars))
 		if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
 			label.modulate = CHOSEN_DIM
 		label.custom_minimum_size.x = content_width

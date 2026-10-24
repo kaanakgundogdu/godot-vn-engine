@@ -21,6 +21,8 @@ Qaan: A name before the colon picks the speaker, and its color comes from the ch
 
 # after_tour
 Qaan: That line came right after the aside. "@return" brings you to the node below the one that called it.
+Qaan: Your warmth toward me is {$warmth} right now.
+Qaan: Hold on.{w=0.5} That was a lot of talking, wasn't it?
 @jump hub
 
 # skip

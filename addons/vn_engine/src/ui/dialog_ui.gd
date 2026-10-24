@@ -26,6 +26,15 @@ var _last_speaker_text: String = ""
 
 var _skip_via_hold: bool = false
 
+var _line_serial: int = 0
+var _events: Array = []
+var _event_index: int = 0
+var _speed_mult: float = 1.0
+var _no_wait: bool = false
+var _total_chars: int = 0
+var _typing: bool = false
+var _at_click: bool = false
+
 var _name_plate_style: StyleBoxFlat
 
 @onready var auto_timer: Timer = $AutoTimer
@@ -89,6 +98,8 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 
 	_set_box_visible(true)
 	_hide_continue_indicator()
+	_reset_reveal()
+	auto_timer.stop()
 
 	if node.text == "" and not runner.current_choices.is_empty():
 		_show_choice_prompt()
@@ -99,24 +110,137 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 
 	dialog_label.visible_characters = 0
 
-	dialog_label.text = node.text
+	var markup: Dictionary = VNEngineTextMarkup.parse(runner.current_text)
+	dialog_label.text = String(markup.get("text", ""))
+	_events = markup.get("events", [])
+	_no_wait = bool(markup.get("no_wait", false))
 
 	_maybe_play_auto_voice(node)
 
-	if _text_tween and _text_tween.is_valid():
+	_total_chars = dialog_label.get_parsed_text().length()
+	_typing = true
+	_build_chain()
+
+
+func _reset_reveal() -> void:
+	_line_serial += 1
+	_kill_text_tween()
+	_events = []
+	_event_index = 0
+	_speed_mult = 1.0
+	_no_wait = false
+	_total_chars = 0
+	_typing = false
+	_at_click = false
+
+
+func _kill_text_tween() -> void:
+	if _text_tween != null and _text_tween.is_valid():
 		_text_tween.kill()
+	_text_tween = null
+
+
+func _build_chain() -> void:
+	_kill_text_tween()
+	var text_speed: float = VNEngineMain.settings().text_speed
+	var skipping: bool = runner != null and runner.is_skip
+	var pos: int = dialog_label.visible_characters
+	if pos < 0 or pos > _total_chars:
+		pos = _total_chars
+	var mult: float = _speed_mult
 
 	_text_tween = create_tween()
-	var total_chars: int = dialog_label.get_parsed_text().length()
+	for i in range(_event_index, _events.size()):
+		var event: Dictionary = _events[i]
+		var at: int = clampi(int(event.get("at", 0)), pos, _total_chars)
+		if at > pos:
+			var step_time: float = (at - pos) * text_speed / mult
+			if skipping:
+				step_time = step_time / 10.0
+			_text_tween.tween_property(dialog_label, "visible_characters", at, step_time)
+			pos = at
+		var value: float = float(event.get("value", 0.0))
+		match String(event.get("type", "")):
+			"speed":
+				mult = value if value > 0.0 else 1.0
+				_text_tween.tween_callback(_pass_event.bind(i, mult))
+			"wait":
+				if not skipping and value > 0.0:
+					_text_tween.tween_interval(value)
+				_text_tween.tween_callback(_pass_event.bind(i, mult))
+			"click":
+				if skipping:
+					_text_tween.tween_callback(_pass_event.bind(i, mult))
+				else:
+					_text_tween.tween_callback(_stop_at_click.bind(i))
+					return
+			_:
+				_text_tween.tween_callback(_pass_event.bind(i, mult))
 
-	var current_speed: float = VNEngineMain.settings().text_speed
-	var duration: float = maxf(total_chars * current_speed, 0.01)
-
-	if runner.is_skip:
+	var duration: float = maxf((_total_chars - pos) * text_speed / mult, 0.01)
+	if skipping:
 		duration = duration / 10.0
+	_text_tween.tween_property(dialog_label, "visible_characters", _total_chars, duration)
+	_text_tween.tween_callback(_finish_line)
 
-	_text_tween.tween_property(dialog_label, "visible_characters", total_chars, duration)
-	_text_tween.tween_callback(_on_text_finished)
+
+func _pass_event(index: int, mult: float) -> void:
+	_event_index = index + 1
+	_speed_mult = mult
+
+
+func _stop_at_click(index: int) -> void:
+	_event_index = index + 1
+	_at_click = true
+	_show_continue_indicator()
+	if runner != null and runner.is_auto:
+		var serial: int = _line_serial
+		get_tree().create_timer(VNEngineMain.settings().auto_speed, false).timeout.connect(func():
+			if serial == _line_serial and _at_click and _event_index == index + 1 and runner.is_auto:
+				_resume_from_click()
+		)
+
+
+func _resume_from_click() -> void:
+	_at_click = false
+	_hide_continue_indicator()
+	_build_chain()
+
+
+func _reveal_to_next_stop() -> void:
+	_kill_text_tween()
+	for i in range(_event_index, _events.size()):
+		var event: Dictionary = _events[i]
+		var type: String = String(event.get("type", ""))
+		if type == "speed":
+			var value: float = float(event.get("value", 0.0))
+			_speed_mult = value if value > 0.0 else 1.0
+		elif type == "click":
+			var at: int = clampi(int(event.get("at", 0)), 0, _total_chars)
+			dialog_label.visible_characters = maxi(dialog_label.visible_characters, at)
+			_stop_at_click(i)
+			return
+	_reveal_to_end()
+
+
+func _reveal_to_end() -> bool:
+	_kill_text_tween()
+	_event_index = _events.size()
+	if _at_click:
+		_hide_continue_indicator()
+	return _finish_line()
+
+
+func _finish_line() -> bool:
+	_typing = false
+	_at_click = false
+	dialog_label.visible_characters = _total_chars
+	if _no_wait and runner.current_choices.is_empty():
+		line_revealed.emit()
+		runner.next_node()
+		return true
+	_on_text_finished()
+	return false
 
 
 func _apply_speaker(speaker_id: String) -> void:
@@ -139,8 +263,7 @@ func _apply_speaker(speaker_id: String) -> void:
 
 
 func clear_text() -> void:
-	if _text_tween and _text_tween.is_valid():
-		_text_tween.kill()
+	_reset_reveal()
 	auto_timer.stop()
 	_hide_continue_indicator()
 	dialog_label.text = ""
@@ -151,8 +274,7 @@ func clear_text() -> void:
 
 
 func _show_choice_prompt() -> void:
-	if _text_tween and _text_tween.is_valid():
-		_text_tween.kill()
+	_reset_reveal()
 
 	var history: Array[Dictionary] = []
 	if runner and runner.state:
@@ -415,7 +537,7 @@ func _apply_name_plate_style(name_color: Color) -> void:
 
 
 func is_typing() -> bool:
-	return _text_tween != null and _text_tween.is_valid() and _text_tween.is_running()
+	return _typing
 
 
 func _on_text_finished() -> void:
@@ -429,8 +551,9 @@ func _on_text_finished() -> void:
 	_show_continue_indicator()
 
 	if runner.is_skip:
+		var serial: int = _line_serial
 		get_tree().create_timer(0.2).timeout.connect(func():
-			if runner.is_skip:
+			if serial == _line_serial and runner.is_skip:
 				runner.next_node()
 		)
 	elif runner.is_auto:
@@ -459,7 +582,11 @@ func _hide_continue_indicator() -> void:
 
 
 func _on_mode_changed() -> void:
-	if _text_tween != null and _text_tween.is_valid() and _text_tween.is_running():
+	if _typing:
+		if runner.is_skip:
+			_reveal_to_end()
+		elif runner.is_auto and _at_click:
+			_resume_from_click()
 		return
 	var current_node := runner.get_current_node()
 	if current_node != null and runner.current_choices.is_empty():
@@ -476,12 +603,16 @@ func _advance_dialog() -> void:
 		runner.is_skip = false
 		runner.mode_changed.emit()
 
-	if _text_tween and _text_tween.is_running():
-		_text_tween.custom_step(100.0)
-
+	if _typing:
 		if runner and runner.is_auto:
-			auto_timer.stop()
-			runner.next_node()
+			var advanced: bool = _reveal_to_end()
+			if runner.is_auto and not advanced:
+				auto_timer.stop()
+				runner.next_node()
+		elif _at_click:
+			_resume_from_click()
+		else:
+			_reveal_to_next_stop()
 	else:
 		if runner:
 			runner.next_node()
@@ -515,22 +646,6 @@ func _apply_window_opacity() -> void:
 
 
 func _restart_text_tween() -> void:
-	if _text_tween == null or not _text_tween.is_valid() or not _text_tween.is_running():
+	if not _typing or _at_click:
 		return
-
-	var total_chars: int = dialog_label.get_parsed_text().length()
-	var current_visible: int = maxi(dialog_label.visible_characters, 0)
-	if current_visible >= total_chars:
-		return
-
-	_text_tween.kill()
-
-	var current_speed: float = VNEngineMain.settings().text_speed
-	var remaining_chars: int = total_chars - current_visible
-	var duration: float = maxf(remaining_chars * current_speed, 0.01)
-	if runner != null and runner.is_skip:
-		duration = duration / 10.0
-
-	_text_tween = create_tween()
-	_text_tween.tween_property(dialog_label, "visible_characters", total_chars, duration)
-	_text_tween.tween_callback(_on_text_finished)
+	_build_chain()

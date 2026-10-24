@@ -43,6 +43,9 @@ static func lint(script: VNEngineStoryScript) -> void:
 			_lint_animation_name(node.animation, node.line, script)
 
 		_lint_after_flow_stop(node, script)
+		_lint_text(node.text, node.line, false, script)
+		for choice in node.choices:
+			_lint_text(choice.text, choice.line, true, script)
 
 		for cmd in node.commands:
 			_lint_command(cmd, script, reachable)
@@ -129,7 +132,10 @@ static func lint_flags(script: VNEngineStoryScript, flag_list: VNEngineFlagList)
 				if condition != "":
 					_lint_expression_flags(condition, cmd.get("line", 0), script, flag_list)
 
+		_lint_text_vars(node.text, node.line, script, flag_list)
+
 		for choice in node.choices:
+			_lint_text_vars(choice.text, choice.line, script, flag_list)
 			if choice.condition != "":
 				_lint_expression_flags(choice.condition, choice.line, script, flag_list)
 			if choice.disabled_if != "":
@@ -367,6 +373,23 @@ static func _extract_jump_if_condition(args: String) -> String:
 	if not args.contains("->"):
 		return ""
 	return args.split("->", true, 1)[0].strip_edges()
+
+
+static func _lint_text(text: String, line_no: int, is_choice: bool, script: VNEngineStoryScript) -> void:
+	if text == "":
+		return
+	for msg in VNEngineTextMarkup.validate(text):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, msg))
+	if is_choice:
+		var parsed: Dictionary = VNEngineTextMarkup.parse(text)
+		if not parsed["events"].is_empty() or parsed["no_wait"]:
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Text tags are ignored in choices"))
+
+
+static func _lint_text_vars(text: String, line_no: int, script: VNEngineStoryScript, flag_list: VNEngineFlagList) -> void:
+	for id in VNEngineTextMarkup.collect_vars(text):
+		if not flag_list.has_flag(id):
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Undefined flag: '%s'" % id.to_lower(), _suggest_flag(id, flag_list)))
 
 
 static func _validate_expression(expr: String, line_no: int, script: VNEngineStoryScript) -> void:

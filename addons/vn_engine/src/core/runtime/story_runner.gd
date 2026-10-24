@@ -56,6 +56,7 @@ var is_restoring: bool = false
 var pending_choice_timer: Dictionary = {}
 
 var current_choices: Array[VNEngineChoiceOption] = []
+var current_text: String = ""
 
 const RUNAWAY_LIMIT := 256
 
@@ -179,6 +180,7 @@ func play_node(index: int) -> void:
 		await bus.blocked_finished
 
 	current_choices = _visible_choices(node)
+	current_text = VNEngineTextMarkup.interpolate(node.text, state.flags)
 
 	if node.text == "" and current_choices.is_empty():
 		_consecutive_logic_count += 1
@@ -206,7 +208,7 @@ func play_node(index: int) -> void:
 		"file": state.current_file,
 		"node_id": state.current_node_id,
 		"speaker": node.speaker_id,
-		"text": node.text,
+		"text": VNEngineTextMarkup.strip(current_text),
 		"line_id": node.line_id,
 	})
 	if state.history.size() > VNEngineStoryState.MAX_HISTORY:
@@ -334,6 +336,7 @@ func execute_load_game(slot_id: int = 0) -> void:
 		VNEngineMain.save_data().mark_line_seen(script_res.chapter_id, node.line_id)
 
 		current_choices = _visible_choices(node)
+		current_text = VNEngineTextMarkup.interpolate(node.text, state.flags)
 		line_seen_before = true
 		dialog_started.emit(node)
 		if not current_choices.is_empty():
@@ -410,13 +413,14 @@ func _apply_history_entry(entry: Dictionary) -> void:
 		return
 
 	var node: VNEngineStoryNode = script_res.nodes[current_index]
+	current_text = VNEngineTextMarkup.interpolate(node.text, state.flags)
 
 	if target_history_len > state.history.size():
 		state.history.append({
 			"file": state.current_file,
 			"node_id": state.current_node_id,
 			"speaker": node.speaker_id,
-			"text": node.text,
+			"text": VNEngineTextMarkup.strip(current_text),
 			"line_id": node.line_id,
 		})
 
