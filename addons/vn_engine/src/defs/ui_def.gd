@@ -19,6 +19,8 @@ extends Resource
 @export var dialog_use_character_colors: bool = true
 ## Name plate position above the dialog box.
 @export_enum("left", "center") var dialog_name_align: String = "left"
+## If false, the dialog box never shows side images, for any character.
+@export var side_image_enabled: bool = true
 
 @export_group("UI animations")
 ## If true, the dialog box and choice menu fade and slide in and out.

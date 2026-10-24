@@ -30,6 +30,7 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 
 	VNEngineMain.save_data().unlock_cg(cg_id)
 	ctx.state.cg = cg_id
+	ctx.state.bg_view = {}
 
 	if ctx.characters and not keep:
 		var active_ids: Array = ctx.characters.active_sprites.keys().duplicate()
@@ -38,4 +39,5 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 		ctx.state.characters.clear()
 
 	if ctx.background:
+		ctx.background.set_view(1.0, Vector2(0.5, 0.5), 0.0)
 		ctx.background.change_to(cg_id, transition, duration, "cg")

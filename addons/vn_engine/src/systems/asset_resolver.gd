@@ -72,6 +72,31 @@ func resolve_character(char_id: String, outfit: String, pose: String, expression
 	return ""
 
 
+func resolve_side(char_id: String, expression: String) -> String:
+	var cache_key: String = "side|%s|%s" % [char_id, expression]
+	if _cache.has(cache_key):
+		return _cache[cache_key]
+
+	var found: String = ""
+	var entry: VNEngineAssetMapEntry = _entries.get("side", null)
+	if entry != null and char_id != "":
+		var names: Array[String] = []
+		if expression != "":
+			names.append("%s_%s" % [char_id, expression])
+		names.append(char_id)
+		for file_name: String in names:
+			for ext: String in entry.extensions:
+				var path: String = entry.root + char_id + "/" + file_name + ext
+				if ResourceLoader.exists(path):
+					found = path
+					break
+			if found != "":
+				break
+
+	_cache[cache_key] = found
+	return found
+
+
 func exists(kind: String, name: String) -> bool:
 	return resolve(kind, name) != ""
 

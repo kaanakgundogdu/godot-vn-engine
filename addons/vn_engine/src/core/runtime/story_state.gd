@@ -12,6 +12,7 @@ var flags: Dictionary = {}
 
 var bg: String = ""
 var cg: String = ""
+var bg_view: Dictionary = {}
 var audio: Dictionary = {}
 
 var characters: Dictionary = {}
@@ -47,6 +48,7 @@ func to_dict(include_history: bool = true) -> Dictionary:
 		"flags": flags.duplicate(true),
 		"bg": bg,
 		"cg": cg,
+		"bg_view": bg_view.duplicate(true),
 		"audio": audio.duplicate(true),
 		"characters": characters.duplicate(true),
 		"last_speaker": last_speaker,
@@ -71,6 +73,8 @@ func from_dict(data: Dictionary) -> void:
 
 	bg = data.get("bg", "")
 	cg = data.get("cg", "")
+	var new_bg_view: Dictionary = data.get("bg_view", {})
+	bg_view = new_bg_view.duplicate(true)
 
 	var new_audio: Dictionary = data.get("audio", {})
 	audio = new_audio.duplicate(true)

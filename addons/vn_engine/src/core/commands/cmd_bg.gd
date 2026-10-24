@@ -24,6 +24,8 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 
 	ctx.state.bg = bg_name
 	ctx.state.cg = ""
+	ctx.state.bg_view = {}
 
 	if ctx.background:
+		ctx.background.set_view(1.0, Vector2(0.5, 0.5), 0.0)
 		ctx.background.change_to(bg_name, transition, duration)

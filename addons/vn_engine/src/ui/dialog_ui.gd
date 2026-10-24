@@ -8,6 +8,10 @@ const BOX_FADE_TIME: float = 0.2
 const BOX_SLIDE_DISTANCE: float = 12.0
 const NAME_FADE_TIME: float = 0.12
 const MODE_FADE_TIME: float = 0.25
+const SIDE_FADE_TIME: float = 0.15
+const SIDE_IMAGE_WIDTH: float = 232.0
+const SIDE_IMAGE_GAP: float = 24.0
+const SIDE_IMAGE_LEFT: float = 24.0
 
 @export var runner: VNEngineStoryRunner
 @export var dialog_label: RichTextLabel
@@ -25,6 +29,9 @@ var _mode_tween: Tween
 var _box_fading_out: bool = false
 var _box_rest_position: Vector2 = Vector2.ZERO
 var _last_speaker_text: String = ""
+var _side_tween: Tween
+var _side_path: String = ""
+var _text_margin_left: int = 0
 
 var _skip_via_hold: bool = false
 
@@ -51,12 +58,15 @@ var _nvl_on: bool = false
 @onready var name_plate: PanelContainer = $NameRow/NamePlate
 @onready var continue_indicator: Label = $ContinueIndicator
 @onready var nvl_page: VNEngineNvlPage = $NvlPage
+@onready var side_image: TextureRect = $BackgroundBox/SideImage
+@onready var text_margin: MarginContainer = $BackgroundBox/MarginContainer
 
 
 func _ready() -> void:
 	hide()
 	_active_label = dialog_label
 	nvl_page.dialog = self
+	_text_margin_left = text_margin.get_theme_constant("margin_left")
 
 	if runner:
 		runner.register_manager(self)
@@ -146,6 +156,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	else:
 		_active_label = dialog_label
 		_apply_speaker(node.speaker_id)
+		_apply_side_image(node)
 		_apply_seen_color()
 		_active_label.visible_characters = 0
 		_active_label.text = text
@@ -301,6 +312,56 @@ func _apply_speaker(speaker_id: String) -> void:
 	_last_speaker_text = speaker_text
 
 
+func _apply_side_image(node: VNEngineStoryNode) -> void:
+	var path: String = _side_image_path(node)
+	if path == "":
+		_hide_side_image()
+		return
+	var changed: bool = path != _side_path
+	if changed:
+		side_image.texture = load(path) as Texture2D
+		_side_path = path
+	side_image.show()
+	text_margin.add_theme_constant_override("margin_left", int(SIDE_IMAGE_LEFT + SIDE_IMAGE_WIDTH + SIDE_IMAGE_GAP))
+	if _side_tween != null and _side_tween.is_valid():
+		_side_tween.kill()
+	side_image.modulate.a = 1.0
+	if changed and _animations_enabled():
+		side_image.modulate.a = 0.0
+		_side_tween = create_tween()
+		_side_tween.tween_property(side_image, "modulate:a", 1.0, _animation_time(SIDE_FADE_TIME))
+
+
+func _hide_side_image() -> void:
+	if _side_tween != null and _side_tween.is_valid():
+		_side_tween.kill()
+	side_image.hide()
+	side_image.texture = null
+	_side_path = ""
+	text_margin.add_theme_constant_override("margin_left", _text_margin_left)
+
+
+func _side_image_path(node: VNEngineStoryNode) -> String:
+	var speaker_id: String = node.speaker_id
+	if _nvl_on or speaker_id == "" or _is_narrator(speaker_id):
+		return ""
+	if runner == null or runner.ctx == null or runner.ctx.assets == null or runner.ctx.characters == null:
+		return ""
+	if not VNEngineMain.game().get_ui().side_image_enabled:
+		return ""
+	var db: VNEngineCast = runner.ctx.characters.cast
+	var entry: VNEngineCastMember = db.get_entry(speaker_id) if db != null else null
+	if entry != null and not entry.side_image:
+		return ""
+	var expression: String = node.expression
+	if expression == "" and runner.state != null:
+		var shown: Dictionary = runner.state.characters.get(speaker_id, {})
+		expression = String(shown.get("expression", ""))
+	if expression == "" and entry != null:
+		expression = entry.default_expression
+	return runner.ctx.assets.resolve_side(speaker_id, expression)
+
+
 func clear_text() -> void:
 	_reset_reveal()
 	auto_timer.stop()
@@ -308,6 +369,7 @@ func clear_text() -> void:
 	dialog_label.text = ""
 	speaker_label.text = ""
 	_last_speaker_text = ""
+	_hide_side_image()
 	if name_row:
 		name_row.hide()
 	if _nvl_on and runner != null:
@@ -839,6 +901,7 @@ func _settle_mode_visuals() -> void:
 	background_box.visible = not _nvl_on
 	if _nvl_on:
 		name_row.hide()
+		_hide_side_image()
 		dialog_label.text = ""
 		speaker_label.text = ""
 		_last_speaker_text = ""

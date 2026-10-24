@@ -25,3 +25,8 @@ extends Resource
 ## Size multiplier for this character's sprites. 1.0 fits a 760x1000 box
 ## (almost full screen height). Use it when the art is drawn bigger or smaller.
 @export_range(0.25, 2.0, 0.05) var sprite_scale: float = 1.0
+
+@export_group("Side image")
+## If true, the dialog box shows this character's side image (a small portrait
+## on the left) while they speak. It needs a "side" entry in the asset map.
+@export var side_image: bool = true

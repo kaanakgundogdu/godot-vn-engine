@@ -213,6 +213,8 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@choice_timer' default_index must be an integer >= 0: '%s'" % ct_tokens[1]))
 		"animate":
 			_lint_animate(args, line_no, script)
+		"zoom":
+			_lint_zoom(args, line_no, script)
 		"nvl":
 			if args.strip_edges().to_lower() not in ["", "clear"]:
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@nvl' only accepts 'clear': '%s'" % args))
@@ -236,6 +238,44 @@ static func _lint_fade_command(name: String, args: String, line_no: int, script:
 			names.append(token)
 	if name != "bgm_stop" and names.is_empty():
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' expects an asset name" % name))
+
+
+static func _lint_zoom(args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var tokens: PackedStringArray = args.split(" ", false)
+	if tokens.is_empty():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' expects a scale or 'reset'"))
+		return
+	var is_reset: bool = tokens[0].to_lower() == "reset"
+	if not is_reset:
+		if not tokens[0].is_valid_float():
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' scale must be a number: '%s'" % tokens[0]))
+			return
+		if tokens[0].to_float() < 1.0:
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' scale must be >= 1: '%s'" % tokens[0]))
+	var i: int = 1
+	while i < tokens.size():
+		var token: String = tokens[i]
+		if token == "at" and not is_reset:
+			var ok: bool = i + 2 < tokens.size() and tokens[i + 1].is_valid_float() and tokens[i + 2].is_valid_float()
+			if not ok:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' 'at' expects two numbers (x y)"))
+				i += 1
+				continue
+			for k: int in range(1, 3):
+				var value: float = tokens[i + k].to_float()
+				if value < 0.0 or value > 1.0:
+					script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' focus must be between 0 and 1: '%s'" % tokens[i + k]))
+			i += 3
+			continue
+		if token.begins_with("time="):
+			var number: String = token.substr(5)
+			if not number.is_valid_float() or number.to_float() < 0.0:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' time must be a number >= 0: '%s'" % number))
+		elif token.contains("="):
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@zoom' has an unknown parameter: '%s'" % token))
+		else:
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' unexpected argument: '%s'" % token))
+		i += 1
 
 
 static func _lint_animate(args: String, line_no: int, script: VNEngineStoryScript) -> void:

@@ -57,6 +57,21 @@ grow_vertical = 0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_box")
 
+[node name="SideImage" type="TextureRect" parent="BackgroundBox"]
+visible = false
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 24.0
+offset_top = -116.0
+offset_right = 256.0
+offset_bottom = 116.0
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
 [node name="MarginContainer" type="MarginContainer" parent="BackgroundBox"]
 layout_mode = 1
 anchors_preset = 15

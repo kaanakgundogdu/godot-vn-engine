@@ -12,6 +12,9 @@ var current_bg_name: String = ""
 var _active_layer: TextureRect
 var _inactive_layer: TextureRect
 var _bg_tween: Tween
+var _view_tween: Tween
+var _view_scale: float = 1.0
+var _view_focus: Vector2 = Vector2(0.5, 0.5)
 
 
 func _ready() -> void:
@@ -22,6 +25,8 @@ func _ready() -> void:
 	_active_layer = current_layer
 	_inactive_layer = incoming_layer
 	_inactive_layer.modulate.a = 0.0
+	pivot_offset = Vector2.ZERO
+	resized.connect(_apply_view)
 
 
 func change_to(bg_name: String, transition: String = "fade", duration: float = -1.0, kind: String = "background") -> void:
@@ -59,6 +64,7 @@ func change_to(bg_name: String, transition: String = "fade", duration: float = -
 
 
 func _on_state_restored(state: VNEngineStoryState) -> void:
+	_restore_view(state.bg_view)
 	var kind: String = "background"
 	var id: String = state.bg
 
@@ -87,3 +93,41 @@ func _on_crossfade_finished() -> void:
 	_active_layer = _inactive_layer
 	_inactive_layer = previous_active_layer
 	_inactive_layer.modulate.a = 0.0
+
+func set_view(view_scale: float, focus: Vector2, time: float) -> void:
+	var target_scale: float = maxf(view_scale, 1.0)
+	var target_focus: Vector2 = Vector2(clampf(focus.x, 0.0, 1.0), clampf(focus.y, 0.0, 1.0))
+	if _view_tween and _view_tween.is_valid():
+		_view_tween.kill()
+	if time <= 0.0:
+		_view_scale = target_scale
+		_view_focus = target_focus
+		_apply_view()
+		return
+	var from_scale: float = _view_scale
+	var from_focus: Vector2 = _view_focus
+	_view_tween = create_tween()
+	_view_tween.set_trans(Tween.TRANS_SINE)
+	_view_tween.set_ease(Tween.EASE_IN_OUT)
+	_view_tween.tween_method(func(t: float) -> void:
+		_view_scale = lerpf(from_scale, target_scale, t)
+		_view_focus = from_focus.lerp(target_focus, t)
+		_apply_view(), 0.0, 1.0, time)
+
+
+func get_view() -> Dictionary:
+	return {"scale": _view_scale, "x": _view_focus.x, "y": _view_focus.y}
+
+
+func _restore_view(view: Dictionary) -> void:
+	if view.is_empty():
+		set_view(1.0, Vector2(0.5, 0.5), 0.0)
+	else:
+		set_view(float(view.get("scale", 1.0)), Vector2(float(view.get("x", 0.5)), float(view.get("y", 0.5))), 0.0)
+
+
+func _apply_view() -> void:
+	scale = Vector2(_view_scale, _view_scale)
+	var area: Vector2 = size
+	var wanted: Vector2 = area * 0.5 - _view_focus * area * _view_scale
+	position = Vector2(clampf(wanted.x, area.x * (1.0 - _view_scale), 0.0), clampf(wanted.y, area.y * (1.0 - _view_scale), 0.0))
