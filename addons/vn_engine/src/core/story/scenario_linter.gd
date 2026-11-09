@@ -224,6 +224,8 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 			_lint_animate(args, line_no, script)
 		"zoom":
 			_lint_zoom(args, line_no, script)
+		"weather":
+			_lint_weather(args, line_no, script)
 		"nvl":
 			if args.strip_edges().to_lower() not in ["", "clear"]:
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@nvl' only accepts 'clear': '%s'" % args))
@@ -285,6 +287,31 @@ static func _lint_zoom(args: String, line_no: int, script: VNEngineStoryScript) 
 		else:
 			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' unexpected argument: '%s'" % token))
 		i += 1
+
+
+static func _lint_weather(args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var tokens: PackedStringArray = args.split(" ", false)
+	if tokens.is_empty():
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@weather' expects rain, snow, fog or stop"))
+		return
+	var type: String = tokens[0].to_lower()
+	if type not in ["rain", "snow", "fog", "stop"]:
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@weather' unknown weather: '%s'" % tokens[0]))
+		return
+	for i: int in range(1, tokens.size()):
+		var token: String = tokens[i]
+		if token.begins_with("strength="):
+			var number: String = token.substr(9)
+			if not number.is_valid_float() or number.to_float() < 0.05 or number.to_float() > 1.0:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@weather' strength must be a number between 0.05 and 1: '%s'" % number))
+		elif token.begins_with("fade="):
+			var number: String = token.substr(5)
+			if not number.is_valid_float() or number.to_float() < 0.0:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@weather' fade must be a number >= 0: '%s'" % number))
+		elif token.contains("="):
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@weather' has an unknown parameter: '%s'" % token))
+		else:
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@weather' unexpected argument: '%s'" % token))
 
 
 static func _lint_animate(args: String, line_no: int, script: VNEngineStoryScript) -> void:

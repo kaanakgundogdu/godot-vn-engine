@@ -105,6 +105,8 @@ func register_manager(manager: Node) -> void:
 		ctx.audio = manager
 	elif manager is VNEngineVideoSystem:
 		ctx.video = manager
+	elif manager is VNEngineWeatherSystem:
+		ctx.weather = manager
 	elif manager is VNEngineCameraSystem:
 		ctx.camera = manager
 	elif manager is VNEngineDialogUI:

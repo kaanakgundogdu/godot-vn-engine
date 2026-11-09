@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://cj5o8a3kqqhot"]
+[gd_scene load_steps=12 format=3 uid="uid://cj5o8a3kqqhot"]
 
 [ext_resource type="Script" uid="uid://baosghbi08wld" path="res://addons/vn_engine/src/screens/vn_stage_screen.gd" id="1_1rp5n"]
 [ext_resource type="Script" uid="uid://yai5jjwx5sag" path="res://addons/vn_engine/src/core/runtime/story_runner.gd" id="1_v2td6"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://dldhxw53dqsdm" path="res://addons/vn_engine/src/ui/choice_ui.gd" id="7_jeh3n"]
 [ext_resource type="PackedScene" uid="uid://dlvfeh13qe0ij" path="res://addons/vn_engine/src/ui/scenes/choice_ui.tscn" id="7_rql6n"]
 [ext_resource type="PackedScene" uid="uid://cndsg3hnyd68m" path="res://addons/vn_engine/src/ui/scenes/in_game_menu.tscn" id="9_jeh3n"]
+[ext_resource type="Script" uid="uid://tdv1tnhfes37" path="res://addons/vn_engine/src/systems/weather_system.gd" id="14_weather"]
 [ext_resource type="Script" uid="uid://dpke8s8iqrv2p" path="res://addons/vn_engine/src/systems/camera_system.gd" id="13_ns7t1"]
 
 [node name="DialogSystem" type="Control"]
@@ -29,6 +30,10 @@ runner = NodePath("../StoryRunner")
 
 [node name="CharacterLayer" parent="." node_paths=PackedStringArray("runner") instance=ExtResource("5_charlayer")]
 layout_mode = 1
+runner = NodePath("../StoryRunner")
+
+[node name="WeatherManager" type="Node2D" parent="." node_paths=PackedStringArray("runner")]
+script = ExtResource("14_weather")
 runner = NodePath("../StoryRunner")
 
 [node name="VideoManager" type="VideoStreamPlayer" parent="." node_paths=PackedStringArray("runner", "dialog_ui")]

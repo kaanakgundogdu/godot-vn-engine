@@ -28,6 +28,7 @@ var _draft: VNEngineSettings
 @onready var voice_volume_slider: HSlider = %VoiceVolumeSlider
 @onready var voice_volume_label: Label = %VoiceVolumeLabel
 @onready var mute_on_focus_loss_toggle: CheckButton = %MuteOnFocusLossToggle
+@onready var text_blips_toggle: CheckButton = %TextBlipsToggle
 
 @onready var text_speed_slider: HSlider = %TextSpeedSlider
 @onready var text_speed_preview: RichTextLabel = %TextSpeedPreview
@@ -56,6 +57,7 @@ func _ready() -> void:
 	sfx_volume_slider.value_changed.connect(_on_sfx_volume_changed)
 	voice_volume_slider.value_changed.connect(_on_voice_volume_changed)
 	mute_on_focus_loss_toggle.toggled.connect(_on_mute_on_focus_loss_toggled)
+	text_blips_toggle.toggled.connect(_on_text_blips_toggled)
 
 	text_speed_slider.value_changed.connect(_on_text_speed_changed)
 	text_scale_slider.value_changed.connect(_on_text_scale_changed)
@@ -121,6 +123,8 @@ func _refresh_controls() -> void:
 	voice_volume_slider.set_value_no_signal(_draft.voice_volume)
 	voice_volume_label.text = _format_percent(_draft.voice_volume)
 	mute_on_focus_loss_toggle.set_pressed_no_signal(_draft.mute_on_focus_loss)
+	text_blips_toggle.set_pressed_no_signal(_draft.text_blips)
+	text_blips_toggle.get_parent().visible = _text_blips_available()
 
 	text_speed_slider.set_value_no_signal(_draft.text_speed_normalized)
 	text_scale_slider.set_value_no_signal(_draft.text_scale)
@@ -157,6 +161,11 @@ func _refresh_window_size_option() -> void:
 func _mark_read_text_available() -> bool:
 	var game: VNEngineGame = VNEngineMain.game()
 	return game == null or game.get_ui().mark_seen_text
+
+
+func _text_blips_available() -> bool:
+	var manifest: VNEngineGameManifest = VNEngineMain.game().get_manifest()
+	return manifest == null or manifest.blip_enabled
 
 
 func _play_text_speed_preview() -> void:
@@ -221,6 +230,10 @@ func _on_voice_volume_changed(value: float) -> void:
 
 func _on_mute_on_focus_loss_toggled(button_pressed: bool) -> void:
 	_draft.mute_on_focus_loss = button_pressed
+
+
+func _on_text_blips_toggled(button_pressed: bool) -> void:
+	_draft.text_blips = button_pressed
 
 
 func _on_text_speed_changed(value: float) -> void:

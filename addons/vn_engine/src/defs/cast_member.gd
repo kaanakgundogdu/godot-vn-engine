@@ -30,3 +30,13 @@ extends Resource
 ## If true, the dialog box shows this character's side image (a small portrait
 ## on the left) while they speak. It needs a "side" entry in the asset map.
 @export var side_image: bool = true
+
+@export_group("Text blips")
+## "auto" blips for normal characters and stays silent for narrators. "on"
+## always blips, "off" never does.
+@export_enum("auto", "on", "off") var blip: String = "auto"
+## Pitch of this character's blips. Higher sounds lighter, lower sounds
+## heavier.
+@export_range(0.5, 2.0, 0.05) var blip_pitch: float = 1.0
+## Blip sound for this character. Empty uses the game's blip sound.
+@export var blip_sound: AudioStream

@@ -13,6 +13,7 @@ const SIDE_FADE_TIME: float = 0.15
 const SIDE_IMAGE_WIDTH: float = 232.0
 const SIDE_IMAGE_GAP: float = 24.0
 const SIDE_IMAGE_LEFT: float = 24.0
+const BLIP_SKIPPED: String = " \t\n.,;:!?'\"-()[]{}…—–“”‘’、。！？「」『』"
 
 @export var runner: VNEngineStoryRunner
 @export var dialog_label: RichTextLabel
@@ -21,6 +22,7 @@ const SIDE_IMAGE_LEFT: float = 24.0
 @export var choice_ui_root: Control
 
 var is_ui_hidden: bool = false
+var blip_player: VNEngineBlipPlayer
 
 var _text_tween: Tween
 var _indicator_tween: Tween
@@ -57,6 +59,14 @@ var _voice_waiting: bool = false
 var _voice_wait_id: int = 0
 var _voice_wait_serial: int = 0
 
+var _blip_on: bool = false
+var _blip_text: String = ""
+var _blip_pos: int = 0
+var _blip_letters: int = 0
+var _blip_every: int = 2
+var _blip_pitch: float = 1.0
+var _blip_sound: AudioStream
+
 var _name_plate_style: StyleBoxFlat
 
 var _active_label: RichTextLabel
@@ -80,6 +90,8 @@ func _ready() -> void:
 	hide()
 	_active_label = dialog_label
 	nvl_page.dialog = self
+	blip_player = VNEngineBlipPlayer.new()
+	add_child(blip_player)
 	_text_margin_left = text_margin.get_theme_constant("margin_left")
 
 	if runner:
@@ -192,6 +204,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	_maybe_play_auto_voice(node)
 
 	_total_chars = _active_label.get_parsed_text().length()
+	_setup_blips(node.speaker_id)
 	if not _nvl_on:
 		_start_pages(text)
 	_typing = true
@@ -202,6 +215,7 @@ func _reset_reveal() -> void:
 	_line_serial += 1
 	_cancel_voice_wait()
 	_kill_text_tween()
+	_blip_on = false
 	_events = []
 	_event_index = 0
 	_speed_mult = 1.0
@@ -281,6 +295,48 @@ func _build_chain() -> void:
 	_text_tween.tween_callback(_finish_line)
 
 
+func _process(_delta: float) -> void:
+	if not _blip_on or not _typing:
+		return
+	var shown: int = _active_label.visible_characters
+	if shown < 0:
+		return
+	shown = mini(shown + _page_start, _total_chars)
+	if shown <= _blip_pos:
+		_blip_pos = shown
+		return
+	var typed: String = _blip_text.substr(_blip_pos, shown - _blip_pos)
+	_blip_pos = shown
+	if runner.is_skip or _voice_playing():
+		return
+	for letter in typed:
+		if not BLIP_SKIPPED.contains(letter):
+			_blip_letters += 1
+	if _blip_letters >= _blip_every:
+		_blip_letters %= _blip_every
+		blip_player.blip(_blip_sound, _blip_pitch)
+
+
+func _setup_blips(speaker_id: String) -> void:
+	_blip_on = false
+	_blip_pos = 0
+	_blip_letters = 0
+	_blip_text = _active_label.get_parsed_text()
+	var manifest: VNEngineGameManifest = VNEngineMain.game().get_manifest()
+	if not VNEngineMain.settings().text_blips or (manifest != null and not manifest.blip_enabled):
+		return
+	if speaker_id == "" or runner == null or runner.ctx == null or runner.ctx.characters == null:
+		return
+	var db: VNEngineCast = runner.ctx.characters.cast
+	var entry: VNEngineCastMember = db.get_entry(speaker_id) if db != null else null
+	if entry == null or entry.blip == "off" or (entry.blip == "auto" and db.is_narrator(speaker_id)):
+		return
+	_blip_on = true
+	_blip_pitch = entry.blip_pitch
+	_blip_every = manifest.blip_every if manifest != null else 2
+	_blip_sound = entry.blip_sound if entry.blip_sound != null else (manifest.blip_sound if manifest != null else null)
+
+
 func _pass_event(index: int, mult: float) -> void:
 	_event_index = index + 1
 	_speed_mult = mult
@@ -318,6 +374,7 @@ func _reveal_to_next_stop() -> void:
 		elif type == "click" or (type == "page" and int(event.get("value", 0)) > _page_index):
 			var at: int = clampi(int(event.get("at", 0)), 0, _total_chars)
 			_active_label.visible_characters = maxi(_active_label.visible_characters, at - _page_start)
+			_blip_pos = _active_label.visible_characters + _page_start
 			_stop_at_click(i)
 			return
 	_reveal_to_end()

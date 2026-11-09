@@ -270,6 +270,21 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="TextBlipsRow" type="HBoxContainer" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TextBlipsDescLabel" type="Label" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/TextBlipsRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Text blips"
+
+[node name="TextBlipsToggle" type="CheckButton" parent="CenterContainer/MainPanel/Layout/SettingsTabs/Audio/AudioScroll/AudioRows/TextBlipsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="Text" type="Control" parent="CenterContainer/MainPanel/Layout/SettingsTabs"]
 visible = false
 layout_mode = 2

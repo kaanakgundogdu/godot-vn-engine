@@ -42,6 +42,7 @@ var auto_speed: float = 2.0
 var skip_unread: bool = false
 var mark_read_text: bool = true
 var window_opacity: float = 0.85
+var text_blips: bool = true
 
 var autosave: bool = true
 
@@ -125,6 +126,7 @@ func copy_from(other: VNEngineSettings) -> void:
 	skip_unread = other.skip_unread
 	mark_read_text = other.mark_read_text
 	window_opacity = other.window_opacity
+	text_blips = other.text_blips
 	autosave = other.autosave
 	input_overrides = other.input_overrides.duplicate()
 
@@ -278,6 +280,7 @@ func _to_dict() -> Dictionary:
 		"skip_unread": skip_unread,
 		"mark_read_text": mark_read_text,
 		"window_opacity": window_opacity,
+		"text_blips": text_blips,
 		"autosave": autosave,
 		"input_overrides": input_overrides,
 	}
@@ -334,6 +337,8 @@ func _load_from_disk() -> void:
 		mark_read_text = bool(loaded["mark_read_text"])
 	if loaded.has("window_opacity"):
 		window_opacity = float(loaded["window_opacity"])
+	if loaded.has("text_blips"):
+		text_blips = bool(loaded["text_blips"])
 	if loaded.has("autosave"):
 		autosave = bool(loaded["autosave"])
 	if loaded.has("input_overrides") and loaded["input_overrides"] is Dictionary:

@@ -34,6 +34,17 @@ extends Resource
 ## full-screen page. Scenarios can switch with @nvl and @adv.
 @export_enum("adv", "nvl") var text_mode: String = "adv"
 
+@export_group("Text blips")
+## If true, a short sound plays while dialog text types out. Players can
+## still turn it off in Settings.
+@export var blip_enabled: bool = true
+## Sound used for text blips. Empty uses a generated soft beep. A character's
+## own blip sound wins over this one.
+@export var blip_sound: AudioStream
+## A blip plays once per this many typed letters. Spaces and punctuation do
+## not count.
+@export_range(1, 6) var blip_every: int = 2
+
 @export_group("Screens")
 ## Title screen definition.
 @export var title: VNEngineTitleScreenDef

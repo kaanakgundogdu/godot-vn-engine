@@ -12,6 +12,7 @@ var characters: VNEngineCharacterLayer
 var audio: VNEngineAudioSystem
 var video: VNEngineVideoSystem
 var camera: VNEngineCameraSystem
+var weather: VNEngineWeatherSystem
 var dialog_ui: VNEngineDialogUI
 
 var assets: VNEngineAssetResolver

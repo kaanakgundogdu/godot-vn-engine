@@ -41,6 +41,8 @@ const _CMD_NVL: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd
 const _CMD_ADV: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_adv.gd")
 const _CMD_ZOOM: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_zoom.gd")
 
+const _CMD_WEATHER: GDScript = preload("res://addons/vn_engine/src/core/commands/cmd_weather.gd")
+
 const NAMES: PackedStringArray = [
 	"bg", "cg", "cg_hide", "show", "hide", "leave", "move", "shake", "animate",
 	"transition", "window",
@@ -48,7 +50,7 @@ const NAMES: PackedStringArray = [
 	"set_var", "flag", "jump", "jump_if", "call", "return", "scene", "wait",
 	"end", "goto_chapter", "credits", "choice_timer",
 	"chapter_title", "eyecatch", "datecard", "flow",
-	"nvl", "adv", "zoom",
+	"nvl", "adv", "zoom", "weather",
 ]
 
 const SCRIPTS: Dictionary = {
@@ -88,6 +90,7 @@ const SCRIPTS: Dictionary = {
 	"nvl": _CMD_NVL,
 	"adv": _CMD_ADV,
 	"zoom": _CMD_ZOOM,
+	"weather": _CMD_WEATHER,
 }
 
 
