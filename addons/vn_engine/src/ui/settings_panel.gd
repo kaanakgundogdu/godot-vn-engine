@@ -40,6 +40,7 @@ var _draft: VNEngineSettings
 @onready var dialog_opacity_slider: HSlider = %DialogOpacitySlider
 @onready var dialog_opacity_label: Label = %DialogOpacityLabel
 @onready var autosave_toggle: CheckButton = %AutosaveToggle
+@onready var reduce_motion_toggle: CheckButton = %ReduceMotionToggle
 
 var controls_page: VNEngineControlsPage
 
@@ -66,6 +67,7 @@ func _ready() -> void:
 	mark_read_text_toggle.toggled.connect(_on_mark_read_text_toggled)
 	dialog_opacity_slider.value_changed.connect(_on_dialog_opacity_changed)
 	autosave_toggle.toggled.connect(_on_autosave_toggled)
+	reduce_motion_toggle.toggled.connect(_on_reduce_motion_toggled)
 
 	controls_page = VNEngineControlsPage.new()
 	controls_page.name = "Controls"
@@ -136,6 +138,7 @@ func _refresh_controls() -> void:
 	dialog_opacity_slider.set_value_no_signal(_draft.window_opacity)
 	dialog_opacity_label.text = _format_percent(_draft.window_opacity)
 	autosave_toggle.set_pressed_no_signal(_draft.autosave)
+	reduce_motion_toggle.set_pressed_no_signal(_draft.reduce_motion)
 
 	_play_text_speed_preview()
 
@@ -274,3 +277,7 @@ func _on_dialog_opacity_changed(value: float) -> void:
 
 func _on_autosave_toggled(button_pressed: bool) -> void:
 	_draft.autosave = button_pressed
+
+
+func _on_reduce_motion_toggled(button_pressed: bool) -> void:
+	_draft.reduce_motion = button_pressed

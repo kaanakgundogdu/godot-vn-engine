@@ -39,3 +39,5 @@ func _ready() -> void:
 func open_panel() -> void:
 	show()
 	resume_btn.grab_focus()
+	var buttons: Array[Control] = [resume_btn, save_btn, load_btn, settings_btn, flowchart_btn, title_btn, quit_btn]
+	VNEngineUiMotion.stagger_in(buttons, Vector2(0.0, 12.0))

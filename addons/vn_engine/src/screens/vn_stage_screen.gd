@@ -90,7 +90,7 @@ func on_blur() -> void:
 
 
 func _on_story_ended() -> void:
-	VNEngineMain.game().on_story_ended(story_runner.end_reason, story_runner.end_ending_id, story_runner.state)
+	VNEngineMain.game().on_story_ended(story_runner.end_reason, story_runner.end_ending_id, story_runner.state, story_runner.end_transition)
 
 
 func _on_state_restored(state: VNEngineStoryState) -> void:
@@ -148,7 +148,7 @@ func _on_quick_save_requested() -> void:
 
 
 func _on_quick_load_requested() -> void:
-	story_runner.execute_load_game(VNEngineSaveData.QUICKSAVE_SLOT)
+	VNEngineMain.instance().screen_stack.run_covered(&"load", story_runner.execute_load_game.bind(VNEngineSaveData.QUICKSAVE_SLOT))
 
 
 func _on_slot_saved(slot_id: int) -> void:
@@ -255,11 +255,11 @@ func _open_load_panel(save_mode: bool) -> void:
 
 func _on_load_slot_requested(slot_id: int) -> void:
 	VNEngineMain.game().close_overlay()
-	story_runner.execute_load_game(slot_id)
+	VNEngineMain.instance().screen_stack.run_covered(&"load", story_runner.execute_load_game.bind(slot_id))
 
 
 func _on_save_slot_requested(slot_id: int) -> void:
-	VNEngineMain.game().close_overlay()
+	VNEngineMain.instance().overlay_stack.close_all()
 
 	await get_tree().process_frame
 	await get_tree().process_frame

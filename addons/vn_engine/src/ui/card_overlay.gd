@@ -82,6 +82,8 @@ func open(mode: String, params: Dictionary, duration: float = 2.0, fade_duration
 			_fail_and_finish()
 			return
 
+	if VNEngineMain.input_locked():
+		fade_duration = 0.0
 	_fade_duration = fade_duration
 	show()
 	modulate.a = 0.0
@@ -113,6 +115,10 @@ func _input(event: InputEvent) -> void:
 			_start_close()
 	elif event.is_action_pressed(VNEngineInput.ADVANCE):
 		_start_close()
+
+
+func is_held() -> bool:
+	return _held
 
 
 func _is_blocking() -> bool:

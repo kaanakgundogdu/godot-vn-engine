@@ -17,15 +17,17 @@ enum EndReason { SCRIPT_EXHAUSTED, EXPLICIT_END, RUNAWAY_GUARD }
 
 var end_reason: int = EndReason.SCRIPT_EXHAUSTED
 var end_ending_id: String = ""
+var end_transition: Dictionary = {}
 
 var _ended: bool = false
 
-func end_story(reason: int = EndReason.SCRIPT_EXHAUSTED, ending_id: String = "") -> void:
+func end_story(reason: int = EndReason.SCRIPT_EXHAUSTED, ending_id: String = "", transition: Dictionary = {}) -> void:
 	if _ended:
 		return
 	_ended = true
 	end_reason = reason
 	end_ending_id = ending_id
+	end_transition = transition
 	story_ended.emit()
 
 var state: VNEngineStoryState = VNEngineStoryState.new()
@@ -144,6 +146,7 @@ func _load_script(file_path: String) -> bool:
 	_ended = false
 	end_reason = EndReason.SCRIPT_EXHAUSTED
 	end_ending_id = ""
+	end_transition = {}
 	return true
 
 func _ensure_rng_seeded() -> void:
@@ -264,6 +267,7 @@ func _trip_runaway_guard(node: VNEngineStoryNode) -> void:
 	_ended = true
 	end_reason = EndReason.RUNAWAY_GUARD
 	end_ending_id = ""
+	end_transition = {}
 	var message: String = "Runaway guard: %d consecutive logic nodes at '%s', possible infinite loop" % [RUNAWAY_LIMIT, node.id]
 	if OS.is_debug_build():
 		var diagnostic: VNEngineParseDiagnostic = VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.ERROR, node.line, message, "check jump/jump_if targets in '%s'" % state.current_file.get_file())
@@ -378,6 +382,7 @@ func execute_load_game(slot_id: int = 0) -> void:
 		_ended = false
 		end_reason = EndReason.SCRIPT_EXHAUSTED
 		end_ending_id = ""
+		end_transition = {}
 
 		history_stack.clear()
 		_line_paged = false
@@ -416,6 +421,7 @@ func start_from_snapshot(data: Dictionary) -> void:
 	_ended = false
 	end_reason = EndReason.SCRIPT_EXHAUSTED
 	end_ending_id = ""
+	end_transition = {}
 	history_stack.clear()
 	_line_paged = false
 	pending_choice_timer = {}
@@ -468,6 +474,7 @@ func _apply_history_entry(entry: Dictionary) -> void:
 	_ended = false
 	end_reason = EndReason.SCRIPT_EXHAUSTED
 	end_ending_id = ""
+	end_transition = {}
 
 	if state.current_file != script_res.source_path:
 		if not _load_script(state.current_file):

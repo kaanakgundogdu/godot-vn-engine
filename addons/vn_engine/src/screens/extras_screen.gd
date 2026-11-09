@@ -14,6 +14,7 @@ var _gallery_instance: VNEngineGalleryPanel = null
 var _flowchart_instance: VNEngineFlowchartPanel = null
 
 var _extras_def: VNEngineExtrasDef = null
+var _tab_tween: Tween = null
 
 var _music_playing_id: String = ""
 var _music_playing_btn: Button = null
@@ -59,6 +60,7 @@ func enter(params: Dictionary) -> void:
 	if tabs.is_tab_hidden(target_index):
 		target_index = _first_visible_tab_index()
 	tabs.current_tab = target_index
+	_play_tab_in()
 
 
 func exit() -> void:
@@ -94,7 +96,15 @@ func _on_back_pressed() -> void:
 	handle_back()
 
 
+func _play_tab_in() -> void:
+	if _tab_tween != null and _tab_tween.is_valid():
+		_tab_tween.kill()
+	var content: Array[Control] = [tabs.get_current_tab_control()]
+	_tab_tween = VNEngineUiMotion.stagger_in(content, Vector2(0.0, 12.0))
+
+
 func _on_tab_changed(tab_index: int) -> void:
+	_play_tab_in.call_deferred()
 	if tab_index != TAB_INDEX[&"music"]:
 		_stop_music_preview()
 

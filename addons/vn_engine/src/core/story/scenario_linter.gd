@@ -232,7 +232,9 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 		"adv":
 			if args.strip_edges() != "":
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@adv' takes no arguments: '%s'" % args))
-		"shake", "end":
+		"end":
+			_lint_end(args, line_no, script)
+		"shake":
 			pass
 
 
@@ -410,12 +412,35 @@ static func _lint_assignment(command: String, noun: String, args: String, line_n
 
 
 static func _lint_goto_chapter(args: String, line_no: int, script: VNEngineStoryScript) -> void:
-	var trimmed: String = args.strip_edges()
-	if trimmed == "":
+	var words := _lint_transition_options("goto_chapter", args, line_no, script)
+	if words.is_empty():
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@goto_chapter' expects a chapter id"))
-		return
-	if trimmed.split(" ", false).size() > 1:
-		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@goto_chapter' expects a single chapter id: '%s'" % trimmed))
+	elif words.size() > 1:
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@goto_chapter' expects a single chapter id: '%s'" % " ".join(words)))
+
+
+static func _lint_end(args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var words := _lint_transition_options("end", args, line_no, script)
+	if words.size() > 1:
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@end' expects a single ending id: '%s'" % " ".join(words)))
+
+
+static func _lint_transition_options(name: String, args: String, line_no: int, script: VNEngineStoryScript) -> PackedStringArray:
+	var words := PackedStringArray()
+	for token: String in args.split(" ", false):
+		if token.begins_with("transition="):
+			var kind: String = token.substr(11)
+			if kind not in VNEngineScreenFader.KINDS:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' unknown transition: '%s'" % [name, kind]))
+		elif token.begins_with("time="):
+			var number: String = token.substr(5)
+			if not number.is_valid_float() or number.to_float() < 0.0:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@%s' time must be a number >= 0: '%s'" % [name, number]))
+		elif token.contains("="):
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@%s' has an unknown parameter: '%s'" % [name, token]))
+		else:
+			words.append(token)
+	return words
 
 
 static func _lint_show_before_speak(script: VNEngineStoryScript) -> void:

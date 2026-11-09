@@ -32,7 +32,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _finished_called:
+	if _finished_called or VNEngineMain.input_locked():
 		return
 	if not (_waiting_for_input or _current_skippable):
 		return

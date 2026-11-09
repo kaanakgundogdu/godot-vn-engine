@@ -174,7 +174,7 @@ func start_from_flow(box_id: String) -> void:
 		if chapter == null:
 			show_error("start_from_flow", "Chapter not found: '%s'" % box_id)
 			return
-		_enter_chapter_via_loading(chapter, snapshot)
+		_enter_chapter_via_loading(chapter, snapshot, _chapter_transition(chapter, {}))
 		_set_state(AppState.CHAPTER)
 		return
 
@@ -234,7 +234,7 @@ func _slot_chapter(slot_id: int) -> VNEngineChapterDef:
 	return manifest.find_chapter(chapter_id)
 
 
-func goto_chapter(chapter_id: String) -> void:
+func goto_chapter(chapter_id: String, transition: Dictionary = {}) -> void:
 	if not _has_main():
 		return
 	if manifest == null:
@@ -256,18 +256,17 @@ func goto_chapter(chapter_id: String) -> void:
 
 	pending_load_slot = -1
 	pending_flow_snapshot = {}
-	call_deferred("_enter_chapter_via_loading", chapter, resume_state)
+	call_deferred("_enter_chapter_via_loading", chapter, resume_state, _chapter_transition(chapter, transition))
 	_set_state(AppState.CHAPTER)
 
 
-func return_to_title() -> void:
+func return_to_title(transition: Dictionary = {}) -> void:
 	if not _has_main():
 		return
 	VNEngineMain.save_data().flush()
 	var root: VNEngineMain = _vn_main()
-	root.overlay_stack.close_all()
 	root.screen_stack.clear_stack()
-	root.screen_stack.replace_screen(&"title")
+	root.screen_stack.replace_screen(&"title", {}, transition)
 	_set_state(AppState.TITLE)
 	returned_to_title.emit()
 
@@ -279,19 +278,19 @@ func quit_game() -> void:
 		quit_requested.emit()
 
 
-func on_story_ended(reason: int, ending_id: String, state: VNEngineStoryState) -> void:
+func on_story_ended(reason: int, ending_id: String, state: VNEngineStoryState, transition: Dictionary = {}) -> void:
 	if reason == VNEngineStoryRunner.EndReason.EXPLICIT_END or reason == VNEngineStoryRunner.EndReason.SCRIPT_EXHAUSTED:
 		chapter_finished.emit(state.chapter_id)
 	match reason:
 		VNEngineStoryRunner.EndReason.EXPLICIT_END:
 			if ending_id != "":
-				trigger_ending(ending_id)
+				trigger_ending(ending_id, transition)
 			else:
 				var chosen: VNEngineEndingDef = _first_matching_ending(state)
 				if chosen != null:
-					trigger_ending(chosen.id)
+					trigger_ending(chosen.id, transition)
 				else:
-					trigger_ending(manifest.default_ending if manifest != null else "")
+					trigger_ending(manifest.default_ending if manifest != null else "", transition)
 		VNEngineStoryRunner.EndReason.SCRIPT_EXHAUSTED:
 			finish_chapter(state)
 		_:
@@ -327,14 +326,14 @@ func finish_chapter(state: VNEngineStoryState) -> void:
 	trigger_ending(manifest.default_ending)
 
 
-func trigger_ending(ending_id: String) -> void:
+func trigger_ending(ending_id: String, transition: Dictionary = {}) -> void:
 	if not _has_main():
 		return
 	if ending_id == "":
 		if not return_to_title_on_finish:
 			return
 		VNEngineLog.warn("Game", "trigger_ending(): empty ending_id, no ending selected")
-		return_to_title()
+		return_to_title(transition)
 		return
 
 	if manifest == null:
@@ -342,7 +341,7 @@ func trigger_ending(ending_id: String) -> void:
 		if not return_to_title_on_finish:
 			ending_reached.emit(ending_id)
 			return
-		return_to_title()
+		return_to_title(transition)
 		return
 
 	var ending: VNEngineEndingDef = manifest.find_ending(ending_id)
@@ -351,7 +350,7 @@ func trigger_ending(ending_id: String) -> void:
 		if not return_to_title_on_finish:
 			ending_reached.emit(ending_id)
 			return
-		return_to_title()
+		return_to_title(transition)
 		return
 
 	var save_data: VNEngineSaveData = VNEngineMain.save_data()
@@ -368,7 +367,13 @@ func trigger_ending(ending_id: String) -> void:
 	_set_state(AppState.ENDING)
 
 	var root: VNEngineMain = _vn_main()
+	if not transition.is_empty():
+		await root.screen_stack.cover(transition)
+		root.get_card_overlay().covered.connect(root.screen_stack.uncover, CONNECT_ONE_SHOT)
 	await _ending_player.present(root, ending, _current_stage_screen(), _shared_asset_resolver)
+	if root.get_card_overlay().covered.is_connected(root.screen_stack.uncover):
+		root.get_card_overlay().covered.disconnect(root.screen_stack.uncover)
+	root.screen_stack.uncover()
 
 	if ending.credits_variant == "none":
 		return_to_title()
@@ -435,10 +440,10 @@ func open_overlay(id: StringName, params: Dictionary = {}) -> Control:
 	return root.overlay_stack.open_overlay(id, final_params)
 
 
-func close_overlay() -> void:
+func close_overlay(instant: bool = false) -> void:
 	if not _has_main():
 		return
-	_vn_main().overlay_stack.close_overlay()
+	_vn_main().overlay_stack.close_overlay(instant)
 
 
 func _load_manifest() -> void:
@@ -475,17 +480,27 @@ func _first_matching_ending(state: VNEngineStoryState) -> VNEngineEndingDef:
 	return null
 
 
-func _enter_chapter_immediate(chapter: VNEngineChapterDef, resume_state: Dictionary) -> void:
+func _enter_chapter_immediate(chapter: VNEngineChapterDef, resume_state: Dictionary, transition: Dictionary) -> void:
 	var root: VNEngineMain = _vn_main()
 	root.screen_stack.replace_screen(&"stage", {
 		"story_file": chapter.script_path,
 		"resume_state": resume_state,
 		"chapter_id": chapter.id,
 		"chapter_bgm": chapter.bgm,
-	})
+	}, transition)
 
 
-func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dictionary) -> void:
+func _chapter_transition(chapter: VNEngineChapterDef, explicit: Dictionary) -> Dictionary:
+	var result: Dictionary = {}
+	if chapter.enter_transition != "default":
+		result["kind"] = chapter.enter_transition
+	if chapter.enter_transition_time >= 0.0:
+		result["time"] = chapter.enter_transition_time
+	result.merge(explicit, true)
+	return result
+
+
+func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dictionary, transition: Dictionary = {}) -> void:
 	var ui: VNEngineUiDef = get_ui()
 
 	_chapter_cache = VNEngineChapterPreloader.new()
@@ -494,7 +509,7 @@ func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dicti
 
 	var root: VNEngineMain = _vn_main()
 	if ui.loading_mode == "never" or not root.screen_stack.has_screen(&"loading"):
-		_enter_chapter_immediate(chapter, resume_state)
+		_enter_chapter_immediate(chapter, resume_state, transition)
 		return
 
 	var stage_path: String = root.screen_stack.scene_path(&"stage")
@@ -503,7 +518,7 @@ func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dicti
 		preload_paths.append(stage_path)
 
 	if preload_paths.is_empty():
-		_enter_chapter_immediate(chapter, resume_state)
+		_enter_chapter_immediate(chapter, resume_state, transition)
 		return
 
 	var loading_params: Dictionary = {
@@ -517,6 +532,7 @@ func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dicti
 		},
 		"mode": ui.loading_mode,
 		"preloader": _chapter_cache,
+		"next_transition": transition,
 	}
 	if ui.loading_mode == "always":
 		loading_params["min_duration"] = ui.loading_min_duration
@@ -526,7 +542,7 @@ func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dicti
 	if chapter.intro_background != "":
 		loading_params["background_path"] = _shared_asset_resolver.resolve("background", chapter.intro_background)
 
-	root.screen_stack.replace_screen(&"loading", loading_params)
+	root.screen_stack.replace_screen(&"loading", loading_params, transition)
 
 
 func _chapter_title(chapter: VNEngineChapterDef) -> String:

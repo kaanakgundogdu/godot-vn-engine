@@ -23,10 +23,18 @@ extends Resource
 @export var side_image_enabled: bool = true
 
 @export_group("UI animations")
-## If true, the dialog box and choice menu fade and slide in and out.
+## If true, the dialog box, choices, overlays, title and menu buttons animate. Screen transitions are set separately below.
 @export var ui_animations: bool = true
-## Multiplier for UI animation times. 0.5 is twice as fast, 2.0 is twice as slow.
+## Multiplier for UI animation and screen transition times. 0.5 is twice as fast, 2.0 is twice as slow.
 @export_range(0.25, 3.0, 0.05) var ui_animation_scale: float = 1.0
+
+@export_group("Screen transitions")
+## Default transition between screens (title, game, extras, credits).
+@export_enum("fade", "wipe_left", "wipe_right", "wipe_up", "wipe_down", "shutter", "flash", "slide_left", "slide_right", "slide_up", "slide_down", "instant") var screen_transition: String = "fade"
+## Total seconds of a screen transition. Multiplied by ui_animation_scale.
+@export_range(0.0, 3.0, 0.05) var screen_transition_time: float = 0.5
+## Per-screen exceptions, keyed by the screen being opened: title, stage, extras, chapter_select, credits, or load for loading a save in game. Leaving a screen with an exception plays it in reverse.
+@export var screen_transitions: Dictionary[StringName, String] = {}
 
 @export_group("Read text and choices")
 ## If true, lines the player has read before use seen_text_color. Players can turn it off in Settings.

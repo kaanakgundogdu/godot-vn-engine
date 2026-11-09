@@ -674,6 +674,9 @@ func _input(event: InputEvent) -> void:
 		_skip_via_hold = false
 		return
 
+	if VNEngineMain.input_locked():
+		return
+
 	if _is_overlay_open():
 		return
 
@@ -1098,7 +1101,7 @@ func _restart_text_tween() -> void:
 
 
 func _box_slide_distance() -> float:
-	return 0.0 if _nvl_on else BOX_SLIDE_DISTANCE
+	return 0.0 if _nvl_on or VNEngineUiMotion.reduced() else BOX_SLIDE_DISTANCE
 
 
 func _on_text_mode_changed(mode: String) -> void:

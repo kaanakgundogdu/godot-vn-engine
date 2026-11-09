@@ -29,6 +29,12 @@ extends Resource
 ## path. Use for assets that scripts reference indirectly.
 @export var preload_assets: PackedStringArray = PackedStringArray()
 
+@export_group("Transition")
+## Transition into this chapter. "default" uses UiDef.
+@export_enum("default", "fade", "wipe_left", "wipe_right", "wipe_up", "wipe_down", "shutter", "flash", "slide_left", "slide_right", "slide_up", "slide_down", "instant") var enter_transition: String = "default"
+## Seconds for enter_transition. Negative uses UiDef.
+@export var enter_transition_time: float = -1.0
+
 @export_group("Flow")
 ## If true, the game autosaves right when the player enters this chapter.
 @export var autosave_on_enter: bool = true

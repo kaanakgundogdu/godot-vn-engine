@@ -3,13 +3,13 @@ extends VNEngineScreen
 
 
 const TIMEOUT_SECONDS: float = 10.0
-const FADE_DURATION: float = 0.3
 
 var _all_paths: PackedStringArray = PackedStringArray()
 var _pending: PackedStringArray = PackedStringArray()
 var _preloader: VNEngineChapterPreloader = null
 var _next_screen: StringName = &""
 var _next_params: Dictionary = {}
+var _next_transition: Dictionary = {}
 var _elapsed: float = 0.0
 var _first_frame_checked: bool = false
 var _completion_scheduled: bool = false
@@ -102,6 +102,7 @@ func _process_when_slow(delta: float) -> void:
 		_progress_bar.visible = true
 		_label.visible = true
 		_status_label.visible = true
+		VNEngineMain.instance().screen_stack.show_pending()
 
 	_progress_bar.value = ratio
 	_update_status_label()
@@ -146,6 +147,7 @@ func enter(params: Dictionary) -> void:
 	_loading_finished = false
 	_next_screen = params.get("next_screen", &"")
 	_next_params = params.get("next_params", {})
+	_next_transition = params.get("next_transition", {})
 	_all_paths = PackedStringArray()
 	_pending = PackedStringArray()
 	_preloader = params.get("preloader", null) as VNEngineChapterPreloader
@@ -180,15 +182,11 @@ func enter(params: Dictionary) -> void:
 		_pending.append(path)
 
 	if _mode == "always":
-		modulate = Color(1, 1, 1, 0)
-		var tween: Tween = create_tween()
-		tween.tween_property(self, "modulate:a", 1.0, FADE_DURATION)
+		VNEngineMain.instance().screen_stack.show_pending()
 		if not _still_loading():
 			_loading_finished = true
-	else:
-		modulate = Color(1, 1, 1, 1)
-		if not _still_loading():
-			_schedule_completion()
+	elif not _still_loading():
+		_schedule_completion()
 
 
 func _apply_chapter_info(params: Dictionary) -> void:
@@ -219,18 +217,16 @@ func handle_back() -> bool:
 	return true
 
 
+func holds_transition() -> bool:
+	return true
+
+
 func _schedule_completion() -> void:
 	if _completion_scheduled:
 		return
 	_completion_scheduled = true
-
-	if _mode == "always":
-		var tween: Tween = create_tween()
-		tween.tween_property(self, "modulate:a", 0.0, FADE_DURATION)
-		tween.finished.connect(_complete)
-	else:
-		call_deferred("_complete")
+	call_deferred("_complete")
 
 
 func _complete() -> void:
-	VNEngineMain.instance().screen_stack.replace_screen(_next_screen, _next_params)
+	VNEngineMain.instance().screen_stack.replace_screen(_next_screen, _next_params, _next_transition)

@@ -42,6 +42,7 @@ var dev_overlay: Control = null
 @onready var screen_layer: CanvasLayer = $ScreenLayer
 @onready var overlay_layer: CanvasLayer = $OverlayLayer
 @onready var transition_layer: CanvasLayer = $TransitionLayer
+@onready var screen_fader: VNEngineScreenFader = $TransitionLayer/ScreenFader
 @onready var system_layer: CanvasLayer = $SystemLayer
 @onready var systems: Node = $Systems
 @onready var persistent_audio: VNEngineAudioSystem = $Systems/PersistentAudio
@@ -95,6 +96,7 @@ func _build_tree() -> void:
 	transition_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	transition_overlay.color = Color(0, 0, 0, 0)
 	transition_layer_node.add_child(transition_overlay)
+	transition_layer_node.add_child(VNEngineScreenFader.new())
 	var system_layer_node: CanvasLayer = _add_layer("SystemLayer", 300)
 	var card_overlay: Node = CARD_OVERLAY_SCENE.instantiate()
 	card_overlay.name = "CardOverlay"
@@ -233,8 +235,9 @@ func _ready() -> void:
 		_theme_subtree(self)
 		get_tree().node_added.connect(_on_node_added)
 	var ui: VNEngineUiDef = _game.get_ui()
-	screen_stack = VNEngineScreenStack.new(screen_layer, ui.screens, engine_theme)
+	screen_stack = VNEngineScreenStack.new(screen_layer, screen_fader, ui.screens, engine_theme)
 	overlay_stack = VNEngineOverlayStack.new(overlay_layer, screen_stack, ui.overlays, engine_theme)
+	screen_stack.before_swap = overlay_stack.close_all
 
 	match start_mode:
 		"chapter":
@@ -266,6 +269,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
+	if input_locked():
+		return
+
 	if not event.is_action_pressed(&"ui_cancel"):
 		return
 
@@ -290,6 +296,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if not event.is_action_pressed(VNEngineInput.ALT_CLICK):
 		return
+	if input_locked():
+		get_viewport().set_input_as_handled()
+		return
 
 	if not overlay_stack.is_empty():
 		var top: Control = overlay_stack.top_overlay()
@@ -308,6 +317,10 @@ func _input(event: InputEvent) -> void:
 
 static func instance() -> VNEngineMain:
 	return _current
+
+
+static func input_locked() -> bool:
+	return _current != null and _current.screen_stack != null and _current.screen_stack.is_transitioning()
 
 
 static func saves() -> VNEngineSaveSystem:

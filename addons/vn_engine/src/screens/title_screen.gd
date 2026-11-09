@@ -1,6 +1,9 @@
 class_name VNEngineTitleScreen
 extends VNEngineScreen
 
+const LOGO_TIME: float = 0.25
+const BUTTONS_DELAY: float = 0.1
+const SLIDE_DISTANCE: float = 16.0
 
 @onready var continue_btn: Button = %ContinueButton
 @onready var new_game_btn: Button = %NewGameButton
@@ -17,6 +20,9 @@ extends VNEngineScreen
 
 var _logo_resolved: bool = false
 var _continue_slot: int = -1
+var _alignment: String = "center"
+var _intro_tweens: Array[Tween] = []
+var _blur_tween: Tween = null
 
 
 func _ready() -> void:
@@ -32,15 +38,94 @@ func screen_id() -> StringName:
 	return &"title"
 
 
+func enter(_params: Dictionary) -> void:
+	_play_intro()
+
+
 func on_focus() -> void:
 	menu_container.show()
 	if _logo_resolved:
 		logo_rect.show()
 	_refresh_continue()
 	_grab_default_focus()
+	if menu_container.modulate.a < 1.0:
+		_fade_menu(1.0)
 
 
 func on_blur() -> void:
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	if focused != null and menu_container.is_ancestor_of(focused):
+		focused.release_focus()
+	if not VNEngineUiMotion.enabled() or VNEngineUiMotion.time(VNEngineOverlayStack.OPEN_TIME) <= 0.0:
+		menu_container.hide()
+		logo_rect.hide()
+		return
+	_fade_menu(0.0)
+
+
+func _input(event: InputEvent) -> void:
+	if _intro_tweens.is_empty():
+		return
+	var skip: bool = event is InputEventMouseButton and event.pressed
+	skip = skip or event.is_action_pressed(&"ui_accept")
+	for action: StringName in [&"ui_up", &"ui_down", &"ui_left", &"ui_right"]:
+		skip = skip or event.is_action_pressed(action)
+	if skip:
+		_finish_intro()
+
+
+func _play_intro() -> void:
+	var buttons: Array[Control] = []
+	for child: Node in menu_vbox.get_children():
+		if child is Button:
+			buttons.append(child)
+	var offset: Vector2 = Vector2(0.0, SLIDE_DISTANCE)
+	if _alignment == "left":
+		offset = Vector2(-SLIDE_DISTANCE, 0.0)
+	elif _alignment == "right":
+		offset = Vector2(SLIDE_DISTANCE, 0.0)
+
+	var delay: float = 0.0
+	if _logo_resolved and VNEngineUiMotion.enabled():
+		logo_rect.modulate.a = 0.0
+		var logo_tween: Tween = logo_rect.create_tween()
+		logo_tween.tween_property(logo_rect, "modulate:a", 1.0, VNEngineUiMotion.time(LOGO_TIME))
+		_intro_tweens.append(logo_tween)
+		delay = BUTTONS_DELAY
+	var button_tween: Tween = VNEngineUiMotion.stagger_in(buttons, offset, delay)
+	if button_tween != null:
+		_intro_tweens.append(button_tween)
+		button_tween.finished.connect(_on_intro_finished)
+
+
+func _on_intro_finished() -> void:
+	_intro_tweens.clear()
+
+
+func _finish_intro() -> void:
+	var tweens: Array[Tween] = _intro_tweens.duplicate()
+	_intro_tweens.clear()
+	for tween: Tween in tweens:
+		if tween.is_valid():
+			tween.custom_step(99.0)
+
+
+func _fade_menu(target: float) -> void:
+	if _blur_tween != null and _blur_tween.is_valid():
+		_blur_tween.kill()
+	var time: float = VNEngineUiMotion.time(VNEngineOverlayStack.OPEN_TIME)
+	if not VNEngineUiMotion.enabled() or time <= 0.0:
+		menu_container.modulate.a = target
+		logo_rect.modulate.a = target
+		return
+	_blur_tween = create_tween().set_parallel(true)
+	_blur_tween.tween_property(menu_container, "modulate:a", target, time)
+	_blur_tween.tween_property(logo_rect, "modulate:a", target, time)
+	if target <= 0.0:
+		_blur_tween.chain().tween_callback(_hide_menu)
+
+
+func _hide_menu() -> void:
 	menu_container.hide()
 	logo_rect.hide()
 
@@ -110,6 +195,7 @@ func _apply_menu_alignment() -> void:
 	var game: VNEngineGame = VNEngineMain.game()
 	if game.manifest != null and game.manifest.title != null:
 		alignment = game.manifest.title.menu_alignment
+	_alignment = alignment
 	match alignment:
 		"left":
 			menu_vbox.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN

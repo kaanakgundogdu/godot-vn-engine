@@ -24,6 +24,10 @@ func on_blur() -> void:
 	pass
 
 
+func holds_transition() -> bool:
+	return false
+
+
 func allows_overlay(id: StringName) -> bool:
 	return true
 

@@ -283,10 +283,11 @@ func _play_enter_animation(time_scale: float) -> void:
 	if button_container.get_child_count() == 0:
 		return
 	var index: int = 0
+	var slide: float = 0.0 if VNEngineUiMotion.reduced() else ENTER_SLIDE_DISTANCE
 	_enter_tween = create_tween().set_parallel(true)
 	for btn: Button in button_container.get_children():
 		var rest_x: float = btn.position.x
-		btn.position.x = rest_x + ENTER_SLIDE_DISTANCE
+		btn.position.x = rest_x + slide
 		var delay: float = index * ENTER_STAGGER * time_scale
 		var time: float = ENTER_TIME * time_scale
 		_enter_tween.tween_property(btn, "modulate:a", 1.0, time).set_delay(delay)
@@ -296,7 +297,7 @@ func _play_enter_animation(time_scale: float) -> void:
 
 func _on_button_hover(btn: Button, hovered: bool) -> void:
 	var ui_def: VNEngineUiDef = VNEngineMain.game().get_ui()
-	if _is_locked or btn.disabled or not ui_def.ui_animations:
+	if _is_locked or btn.disabled or not ui_def.ui_animations or VNEngineUiMotion.reduced():
 		return
 	if btn.has_meta("hover_tween"):
 		var previous: Tween = btn.get_meta("hover_tween")

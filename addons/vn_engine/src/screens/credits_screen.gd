@@ -24,7 +24,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _allow_skip:
+	if not _allow_skip or VNEngineMain.input_locked():
 		return
 	if not event.is_action_pressed(VNEngineInput.ADVANCE):
 		return

@@ -45,7 +45,7 @@ Narrator: You wave goodbye and step outside. If the timer above had run out, thi
 
 # good_route
 Qaan: Thanks for sticking around, it made the tour better. Thank you for using this engine <3
-@end ending_warm
+@end ending_warm transition=fade time=1.5
 
 # plain_route
 Qaan: Take care out there.
