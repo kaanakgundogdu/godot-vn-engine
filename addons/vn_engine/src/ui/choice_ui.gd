@@ -10,6 +10,8 @@ const PICK_GLOW_TIME: float = 0.12
 const PICK_GLOW_COLOR: Color = Color(1.3, 1.3, 1.3)
 const OTHERS_FADE_TIME: float = 0.15
 const CHOSEN_DIM: Color = Color(0.65, 0.65, 0.65)
+const HINT_SCALE: float = 0.72
+const HINT_COLOR: Color = Color(1.0, 1.0, 1.0, 0.6)
 const NVL_LIT: Color = Color(1.35, 1.35, 1.35)
 const NVL_DISABLED_ALPHA: float = 0.45
 const NVL_ROW_PAD: float = 4.0
@@ -157,6 +159,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 
 		if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
 			btn.disabled = true
+			label.text += _hint_line(choice, vars, label)
 
 		btn.pressed.connect(_on_button_pressed.bind(choice))
 		btn.mouse_entered.connect(_on_button_hover.bind(btn, true))
@@ -246,6 +249,9 @@ func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictiona
 
 	if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
 		btn.disabled = true
+		label.text += _hint_line(choice, vars, label).replace("
+", "
+  ")
 	if ui_def.ui_animations:
 		btn.modulate.a = 0.0
 	_refresh_nvl_button(btn)
@@ -257,6 +263,15 @@ func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictiona
 	btn.focus_entered.connect(refresh)
 	btn.focus_exited.connect(refresh)
 	return btn
+
+
+func _hint_line(choice: VNEngineChoiceOption, vars: Dictionary, label: RichTextLabel) -> String:
+	if choice.hint == "":
+		return ""
+	var size: int = roundi(label.get_theme_font_size(&"normal_font_size") * HINT_SCALE)
+	var text: String = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.hint, vars))
+	return "
+[font_size=%d][color=#%s]%s[/color][/font_size]" % [size, HINT_COLOR.to_html(), text]
 
 
 func _refresh_nvl_button(btn: Button) -> void:

@@ -717,6 +717,11 @@ func _input(event: InputEvent) -> void:
 			_skip_via_hold = true
 		return
 
+	if event.is_action_pressed(VNEngineInput.SKIP_TO_CHOICE):
+		if not _is_input_locked() and runner != null and VNEngineMain.game().get_ui().show_skip_to_choice:
+			runner.toggle_skip_to_choice()
+		return
+
 	if event.is_action_pressed(VNEngineInput.AUTO_TOGGLE):
 		if not _is_input_locked() and runner != null:
 			runner.is_auto = not runner.is_auto

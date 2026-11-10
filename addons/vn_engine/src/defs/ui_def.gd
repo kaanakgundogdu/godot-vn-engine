@@ -21,6 +21,8 @@ extends Resource
 @export_enum("left", "center") var dialog_name_align: String = "left"
 ## If false, the dialog box never shows side images, for any character.
 @export var side_image_enabled: bool = true
+## If true, the in-game bar shows a button that skips to the next choice, read or unread.
+@export var show_skip_to_choice: bool = true
 
 @export_group("UI animations")
 ## If true, the dialog box, choices, overlays, title and menu buttons animate. Screen transitions are set separately below.

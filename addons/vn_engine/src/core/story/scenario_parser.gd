@@ -324,6 +324,18 @@ static func _parse_choice(line: String, line_no: int, header: _Header, script: V
 		target = rest.substr(0, space_idx)
 		remainder = rest.substr(space_idx + 1).strip_edges()
 
+	var hint: String = ""
+	var hint_at: int = 0 if remainder.begins_with("hint \"") else remainder.find(" hint \"")
+	if hint_at > 0:
+		hint_at += 1
+	if hint_at != -1:
+		var quoted: String = remainder.substr(hint_at + 5).strip_edges()
+		if quoted.length() < 2 or not quoted.ends_with("\""):
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "Choice hint must be in quotes at the end of the line: hint \"text\""))
+		else:
+			hint = quoted.substr(1, quoted.length() - 2)
+		remainder = remainder.substr(0, hint_at).strip_edges()
+
 	var condition: String = ""
 	var disabled_if: String = ""
 	var once: bool = false
@@ -361,6 +373,7 @@ static func _parse_choice(line: String, line_no: int, header: _Header, script: V
 	choice.condition = condition
 	choice.disabled_if = disabled_if
 	choice.once = once
+	choice.hint = hint
 	choice.line = line_no
 	header.choices.append(choice)
 

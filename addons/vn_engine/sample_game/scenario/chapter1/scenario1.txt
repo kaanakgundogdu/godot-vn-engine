@@ -39,8 +39,8 @@ Qaan: This aside runs through "@call". Once it finishes, we jump right back to w
 @bg bg_workshop with wipe_left 0.8
 Qaan: Let's look at two more things before we head out.
 - Ask about the telescope. -> topic_telescope once
-- Ask about Ely. (is this clickable?) -> topic_ely disabled_if met_ely == false
-- A bonus: peek at Qaan's notes. -> topic_notes disabled_if warmth < 2 once
+- Ask about Ely. (is this clickable?) -> topic_ely disabled_if met_ely == false hint "Meet Ely first."
+- A bonus: peek at Qaan's notes. -> topic_notes disabled_if warmth < 2 once hint "Needs a little more warmth."
 - A secret: the roof hatch. -> topic_roof if warmth >= 3 once
 - Move on. -> chapter_end
 

@@ -19,6 +19,7 @@ const PULSE_DURATION: float = 1.2
 
 @onready var auto_btn: Button = $AutoMargin/Button
 @onready var skip_btn: Button = $SkipMargin/Button
+@onready var choice_skip_btn: Button = $ChoiceSkipMargin/Button
 @onready var settings_btn: Button = $SettingsMargin/Button
 @onready var log_btn: Button = $LogMargin/Button
 @onready var quick_save_btn: Button = $QSaveMargin/Button
@@ -29,6 +30,7 @@ const PULSE_DURATION: float = 1.2
 
 var _auto_tween: Tween
 var _skip_tween: Tween
+var _choice_skip_tween: Tween
 
 
 func _ready() -> void:
@@ -36,6 +38,8 @@ func _ready() -> void:
 
 	auto_btn.toggled.connect(_on_auto_toggled)
 	skip_btn.pressed.connect(_on_skip_pressed)
+	choice_skip_btn.pressed.connect(_on_choice_skip_pressed)
+	$ChoiceSkipMargin.visible = VNEngineMain.game().get_ui().show_skip_to_choice
 	settings_btn.pressed.connect(_on_settings_pressed)
 	log_btn.pressed.connect(_on_log_pressed)
 	quick_save_btn.pressed.connect(_on_quick_save_pressed)
@@ -64,9 +68,17 @@ func _on_auto_toggled(toggled_on: bool) -> void:
 
 func _on_skip_pressed() -> void:
 	if runner:
-		runner.is_skip = !runner.is_skip
+		if runner.skip_to_choice:
+			runner.skip_to_choice = false
+		else:
+			runner.is_skip = !runner.is_skip
 		runner.is_auto = false
 		runner.mode_changed.emit()
+
+
+func _on_choice_skip_pressed() -> void:
+	if runner:
+		runner.toggle_skip_to_choice()
 
 
 func _on_settings_pressed() -> void:
@@ -100,9 +112,12 @@ func _on_menu_pressed() -> void:
 func _on_mode_changed() -> void:
 	if runner:
 		auto_btn.set_pressed_no_signal(runner.is_auto)
-		skip_btn.set_pressed_no_signal(runner.is_skip)
+		var normal_skip: bool = runner.is_skip and not runner.skip_to_choice
+		skip_btn.set_pressed_no_signal(normal_skip)
+		choice_skip_btn.set_pressed_no_signal(runner.skip_to_choice)
 		_auto_tween = _apply_active_style(auto_btn, runner.is_auto, AUTO_ACTIVE_COLOR, _auto_tween)
-		_skip_tween = _apply_active_style(skip_btn, runner.is_skip, SKIP_ACTIVE_COLOR, _skip_tween)
+		_skip_tween = _apply_active_style(skip_btn, normal_skip, SKIP_ACTIVE_COLOR, _skip_tween)
+		_choice_skip_tween = _apply_active_style(choice_skip_btn, runner.skip_to_choice, SKIP_ACTIVE_COLOR, _choice_skip_tween)
 
 
 func _apply_active_style(btn: Button, active: bool, color: Color, tween: Tween) -> Tween:

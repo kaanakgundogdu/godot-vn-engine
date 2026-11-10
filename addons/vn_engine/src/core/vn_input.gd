@@ -10,11 +10,12 @@ const FORWARD := &"vn_forward"
 const QUICKSAVE := &"vn_quicksave"
 const QUICKLOAD := &"vn_quickload"
 const SKIP_HOLD := &"vn_skip_hold"
+const SKIP_TO_CHOICE := &"vn_skip_to_choice"
 const AUTO_TOGGLE := &"vn_auto_toggle"
 const OPEN_LOG := &"vn_open_log"
 
-const ACTIONS: Array[StringName] = [ADVANCE, AUTO_TOGGLE, SKIP_HOLD, HIDE_UI, OPEN_LOG, ROLLBACK, FORWARD, QUICKSAVE, QUICKLOAD, ALT_CLICK]
-const LABELS: Dictionary = {ADVANCE: "Advance", AUTO_TOGGLE: "Auto mode", SKIP_HOLD: "Skip (hold)", HIDE_UI: "Hide UI", OPEN_LOG: "Open log", ROLLBACK: "Rollback", FORWARD: "Forward", QUICKSAVE: "Quick save", QUICKLOAD: "Quick load", ALT_CLICK: "Alt click"}
+const ACTIONS: Array[StringName] = [ADVANCE, AUTO_TOGGLE, SKIP_HOLD, SKIP_TO_CHOICE, HIDE_UI, OPEN_LOG, ROLLBACK, FORWARD, QUICKSAVE, QUICKLOAD, ALT_CLICK]
+const LABELS: Dictionary = {ADVANCE: "Advance", AUTO_TOGGLE: "Auto mode", SKIP_HOLD: "Skip (hold)", SKIP_TO_CHOICE: "Skip to next choice", HIDE_UI: "Hide UI", OPEN_LOG: "Open log", ROLLBACK: "Rollback", FORWARD: "Forward", QUICKSAVE: "Quick save", QUICKLOAD: "Quick load", ALT_CLICK: "Alt click"}
 
 static var _baseline: Dictionary = {}
 
@@ -51,6 +52,8 @@ static func default_events(action: StringName) -> Array[InputEvent]:
 			events.append(_key_event(KEY_F9))
 		SKIP_HOLD:
 			events.append(_key_event(KEY_CTRL))
+		SKIP_TO_CHOICE:
+			events.append(_key_event(KEY_N))
 		AUTO_TOGGLE:
 			events.append(_key_event(KEY_A))
 		OPEN_LOG:

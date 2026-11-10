@@ -51,6 +51,12 @@ vertical_alignment = 1
 theme_type_variation = &"VNHeadingLabel"
 text = "Extras"
 
+[node name="CompletionLabel" type="Label" parent="Margin/VBox/HeaderBar"]
+unique_name_in_owner = true
+layout_mode = 2
+vertical_alignment = 1
+theme_type_variation = &"VNSmallLabel"
+
 [node name="BackButton" type="Button" parent="Margin/VBox/HeaderBar"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -83,20 +89,32 @@ grow_vertical = 2
 visible = false
 layout_mode = 2
 
-[node name="MusicScroll" type="ScrollContainer" parent="Margin/VBox/ExtrasTabs/Music"]
+[node name="MusicVBox" type="VBoxContainer" parent="Margin/VBox/ExtrasTabs/Music"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="MusicScroll" type="ScrollContainer" parent="Margin/VBox/ExtrasTabs/Music/MusicVBox"]
+layout_mode = 2
+size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="MusicList" type="VBoxContainer" parent="Margin/VBox/ExtrasTabs/Music/MusicScroll"]
+[node name="MusicList" type="VBoxContainer" parent="Margin/VBox/ExtrasTabs/Music/MusicVBox/MusicScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
+
+[node name="MusicCounterLabel" type="Label" parent="Margin/VBox/ExtrasTabs/Music/MusicVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+theme_type_variation = &"VNSmallLabel"
+text = "0 / 0"
 
 [node name="Endings" type="Control" parent="Margin/VBox/ExtrasTabs"]
 visible = false

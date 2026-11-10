@@ -13,6 +13,8 @@ extends Resource
 @export var show_movies: bool = true
 ## Shows the flowchart room in extras and the Flowchart entry in the game menu.
 @export var show_flowchart: bool = true
+## Shows the story completion percent at the top of extras: how much of the text in all routes has been read.
+@export var show_completion: bool = false
 
 @export_group("Locked entries")
 ## "placeholder" = flat card + locked_text, "blur" = blurred real image,

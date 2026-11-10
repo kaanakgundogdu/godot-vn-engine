@@ -8,5 +8,6 @@ class_name VNEngineChoiceOption
 @export var condition: String = ""
 @export var disabled_if: String = ""
 @export var once: bool = false
+@export var hint: String = ""
 @export var line_id: String = ""
 @export var line: int = 0

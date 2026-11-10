@@ -53,7 +53,12 @@ var _advancing: bool = false
 var _consecutive_logic_count: int = 0
 
 var is_auto: bool = false
-var is_skip: bool = false
+var is_skip: bool = false:
+	set(value):
+		is_skip = value
+		if not value:
+			skip_to_choice = false
+var skip_to_choice: bool = false
 var is_input_locked: bool = false
 
 var line_seen_before: bool = false
@@ -168,6 +173,16 @@ func _process(delta: float) -> void:
 		state.playtime_sec += whole
 		_playtime_accum -= float(whole)
 
+func toggle_skip_to_choice() -> void:
+	if skip_to_choice:
+		is_skip = false
+	else:
+		is_skip = true
+		skip_to_choice = true
+		is_auto = false
+	mode_changed.emit()
+
+
 func play_node(index: int) -> void:
 	if index < 0 or index >= script_res.nodes.size():
 		if index != current_index + 1:
@@ -190,7 +205,7 @@ func play_node(index: int) -> void:
 		var is_seen: bool = VNEngineMain.save_data().is_line_seen(script_res.chapter_id, node.line_id)
 		line_seen_before = is_seen
 
-		if is_skip and not is_seen and not VNEngineMain.settings().skip_unread:
+		if is_skip and not is_seen and not skip_to_choice and not VNEngineMain.settings().skip_unread:
 			is_skip = false
 			mode_changed.emit()
 

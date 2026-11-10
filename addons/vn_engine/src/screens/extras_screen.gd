@@ -26,6 +26,8 @@ var _music_playing_btn: Button = null
 @onready var music_list: VBoxContainer = %MusicList
 @onready var endings_list: VBoxContainer = %EndingsList
 @onready var endings_counter_label: Label = %EndingsCounterLabel
+@onready var music_counter_label: Label = %MusicCounterLabel
+@onready var completion_label: Label = %CompletionLabel
 @onready var movies_list: VBoxContainer = %MoviesList
 @onready var music_preview_player: AudioStreamPlayer = %MusicPreviewPlayer
 
@@ -55,6 +57,7 @@ func enter(params: Dictionary) -> void:
 	_populate_endings_tab()
 	_populate_movies_tab()
 	_populate_flowchart_tab()
+	_update_completion()
 
 	var target_index: int = TAB_INDEX[requested_tab]
 	if tabs.is_tab_hidden(target_index):
@@ -173,6 +176,15 @@ func _populate_gallery_tab() -> void:
 	instance.open_panel()
 
 
+func _update_completion() -> void:
+	var total: int = VNEngineReadProgress.total() if _extras_def.show_completion else 0
+	completion_label.visible = total > 0
+	if total == 0:
+		return
+	var read: int = VNEngineReadProgress.read(VNEngineMain.save_data())
+	completion_label.text = "Story completion %d%%" % floori(read * 100.0 / total)
+
+
 func _populate_flowchart_tab() -> void:
 	if not _extras_def.show_flowchart:
 		return
@@ -196,13 +208,18 @@ func _populate_music_tab() -> void:
 	var entries: Array[VNEngineExtrasItem] = _build_entries("music", _extras_def.music_items, resolver)
 	if entries.is_empty():
 		_add_info_row(music_list, "No music yet.")
+		music_counter_label.text = "0 / 0"
 		return
 
+	var unlocked_count: int = 0
 	for item: VNEngineExtrasItem in entries:
 		var unlocked: bool = VNEngineMain.save_data().is_music_unlocked(item.id)
+		if unlocked:
+			unlocked_count += 1
 		if item.hidden_until_unlocked and not unlocked:
 			continue
 		_add_music_row(item, unlocked)
+	music_counter_label.text = "%d / %d" % [unlocked_count, entries.size()]
 
 
 func _add_music_row(item: VNEngineExtrasItem, unlocked: bool) -> void:

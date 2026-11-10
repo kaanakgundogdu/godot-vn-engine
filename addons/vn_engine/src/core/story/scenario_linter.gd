@@ -121,6 +121,8 @@ static func lint_expressions(script: VNEngineStoryScript) -> void:
 				_validate_expression(choice.condition, choice.line, script)
 			if choice.disabled_if != "":
 				_validate_expression(choice.disabled_if, choice.line, script)
+			elif choice.hint != "":
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, choice.line, "Choice hint only shows while the choice is locked", "add 'disabled_if <condition>' before the hint"))
 
 
 static func lint_flags(script: VNEngineStoryScript, flag_list: VNEngineFlagList) -> void:
@@ -145,6 +147,7 @@ static func lint_flags(script: VNEngineStoryScript, flag_list: VNEngineFlagList)
 
 		for choice in node.choices:
 			_lint_text_vars(choice.text, choice.line, script, flag_list)
+			_lint_text_vars(choice.hint, choice.line, script, flag_list)
 			if choice.condition != "":
 				_lint_expression_flags(choice.condition, choice.line, script, flag_list)
 			if choice.disabled_if != "":
