@@ -23,6 +23,8 @@ extends Resource
 @export var side_image_enabled: bool = true
 ## If true, the in-game bar shows a button that skips to the next choice, read or unread.
 @export var show_skip_to_choice: bool = true
+## If true, every dialog letter fades and slides in as it types, like wrapping each line in [pop].
+@export var text_pop_in: bool = false
 
 @export_group("UI animations")
 ## If true, the dialog box, choices, overlays, title and menu buttons animate. Screen transitions are set separately below.

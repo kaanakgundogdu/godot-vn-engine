@@ -2,6 +2,14 @@ class_name VNEngineTextMarkup
 extends RefCounted
 
 const VOID_TAGS: Array[String] = ["lb", "rb", "br", "hr"]
+const KNOWN_TAGS: Array[String] = [
+	"b", "i", "u", "s", "code", "char", "p", "br", "hr", "center", "left", "right", "fill",
+	"indent", "url", "hint", "img", "font", "font_size", "opentype_features", "lang", "table", "cell",
+	"ul", "ol", "lb", "rb", "lrm", "rlm", "lre", "rle", "lro", "rlo", "pdf", "alm", "lri", "rli", "fsi", "pdi",
+	"zwj", "zwnj", "wj", "shy", "color", "bgcolor", "fgcolor", "outline_size", "outline_color", "dropcap",
+	"wave", "tornado", "shake", "fade", "rainbow", "pulse",
+	"pop", "bounce", "drop", "grow", "spin", "decode", "jitter", "glitch", "ghost", "heartbeat", "sway",
+]
 
 static var _bbcode_tag: RegEx = null
 
@@ -82,6 +90,22 @@ static func _tag_name(content: String) -> String:
 		if at != -1 and at < end:
 			end = at
 	return content.substr(0, end)
+
+
+static func unknown_tags(text: String) -> PackedStringArray:
+	var names := PackedStringArray()
+	var i: int = text.find("[")
+	while i != -1:
+		var close: int = text.find("]", i + 1)
+		if close == -1:
+			break
+		var content: String = text.substr(i + 1, close - i - 1)
+		if _is_bbcode_tag(content):
+			var name: String = _tag_name(content.trim_prefix("/"))
+			if not KNOWN_TAGS.has(name) and not names.has(name):
+				names.append(name)
+		i = text.find("[", i + 1)
+	return names
 
 
 static func validate(text: String) -> PackedStringArray:

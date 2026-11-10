@@ -229,6 +229,8 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 			_lint_zoom(args, line_no, script)
 		"weather":
 			_lint_weather(args, line_no, script)
+		"textfx":
+			_lint_textfx(args, line_no, script)
 		"nvl":
 			if args.strip_edges().to_lower() not in ["", "clear"]:
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@nvl' only accepts 'clear': '%s'" % args))
@@ -292,6 +294,21 @@ static func _lint_zoom(args: String, line_no: int, script: VNEngineStoryScript) 
 		else:
 			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@zoom' unexpected argument: '%s'" % token))
 		i += 1
+
+
+static func _lint_textfx(args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var tokens: PackedStringArray = args.split(" ", false)
+	if tokens.is_empty() or tokens[0].to_lower() not in ["glitch", "off"]:
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@textfx' expects glitch or off"))
+		return
+	for i: int in range(1, tokens.size()):
+		var token: String = tokens[i]
+		if tokens[0].to_lower() == "glitch" and token.begins_with("strength="):
+			var number: String = token.substr(9)
+			if not number.is_valid_float() or number.to_float() < 0.05 or number.to_float() > 1.0:
+				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@textfx' strength must be a number between 0.05 and 1: '%s'" % number))
+		else:
+			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@textfx' has an unknown parameter: '%s'" % token))
 
 
 static func _lint_weather(args: String, line_no: int, script: VNEngineStoryScript) -> void:
@@ -500,6 +517,8 @@ static func _lint_text(text: String, line_no: int, is_choice: bool, script: VNEn
 		return
 	for msg in VNEngineTextMarkup.validate(text):
 		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, msg))
+	for name in VNEngineTextMarkup.unknown_tags(text):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "Unknown text tag '[%s]', it shows as plain text" % name, "check the spelling, or write [lb] and [rb] for literal brackets"))
 	if is_choice:
 		var parsed: Dictionary = VNEngineTextMarkup.parse(text)
 		if not parsed["events"].is_empty() or parsed["no_wait"]:

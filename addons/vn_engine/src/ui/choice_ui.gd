@@ -148,7 +148,8 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
-		label.text = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars))
+		VNEngineTextEffects.install(label, false)
+		label.text = VNEngineTextEffects.prepare(VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars)))
 		if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
 			label.modulate = CHOSEN_DIM
 		label.custom_minimum_size.x = content_width
@@ -239,7 +240,8 @@ func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictiona
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_constant_override("line_separation", NVL_LINE_SEPARATION)
 	VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
-	label.text = "> " + text
+	VNEngineTextEffects.install(label, false)
+	label.text = "> " + VNEngineTextEffects.prepare(text)
 	if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
 		label.modulate = CHOSEN_DIM
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -249,9 +251,7 @@ func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictiona
 
 	if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
 		btn.disabled = true
-		label.text += _hint_line(choice, vars, label).replace("
-", "
-  ")
+		label.text += _hint_line(choice, vars, label).replace("\n", "\n  ")
 	if ui_def.ui_animations:
 		btn.modulate.a = 0.0
 	_refresh_nvl_button(btn)

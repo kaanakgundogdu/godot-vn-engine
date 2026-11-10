@@ -42,6 +42,7 @@ func _process(_delta: float) -> void:
 
 
 func add_entry(speaker_id: String, text: String, kind: String) -> RichTextLabel:
+	text = VNEngineTextEffects.prepare(text)
 	var speaker_name: String = "" if kind == "choice" else _display_name(speaker_id)
 	var gap: float = _gap_before(speaker_id, kind)
 	for old_row in _rows:
@@ -205,6 +206,7 @@ func _make_text_label() -> RichTextLabel:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_constant_override("line_separation", LINE_SEPARATION)
 	VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
+	VNEngineTextEffects.install(label)
 	return label
 
 

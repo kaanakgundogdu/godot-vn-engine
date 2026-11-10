@@ -113,8 +113,9 @@ func _build_entry(entry: Dictionary) -> Control:
 	text_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	VNEngineSettings.apply_text_scale(text_label, get_theme_default_font_size())
+	VNEngineTextEffects.install(text_label, false)
 
-	var display_text: String = text_raw
+	var display_text: String = VNEngineTextEffects.prepare(text_raw)
 	if is_narrator or speaker_id == "":
 		text_label.text = "[i]%s[/i]" % display_text
 		text_label.modulate = Color(1.0, 1.0, 1.0, NARRATOR_DIM)

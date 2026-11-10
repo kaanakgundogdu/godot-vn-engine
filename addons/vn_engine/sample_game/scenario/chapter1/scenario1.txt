@@ -22,7 +22,7 @@ Qaan: A name before the colon picks the speaker, and its color comes from the ch
 # after_tour
 Qaan: That line came right after the aside. "@return" brings you to the node below the one that called it.
 Qaan: Your warmth toward me is {$warmth} right now.
-Qaan: Hold on.{w=0.5} That was a lot of talking, wasn't it?
+Qaan: Hold on.{w=0.5} That was a [wave]lot[/wave] of talking, wasn't it? Words can [bounce]jump[/bounce], [jitter]shiver[/jitter] or [rainbow]shine[/rainbow] too.
 @jump hub
 
 # skip
@@ -43,6 +43,7 @@ Qaan: Let's look at two more things before we head out.
 - A bonus: peek at Qaan's notes. -> topic_notes disabled_if warmth < 2 once hint "Needs a little more warmth."
 - A secret: the roof hatch. -> topic_roof if warmth >= 3 once
 - Move on. -> chapter_end
+- Bonus: show me the text effects. -> topic_text once
 
 # topic_telescope
 @flag warmth += 1
@@ -58,6 +59,18 @@ Ely: Hello. I catalog the stars here. Asking about me just unlocked through "dis
 # topic_roof
 @flag warmth += 1
 Qaan: Nobody knows about the roof hatch. This choice was hidden until warmth reached 3, that's "if" at work. A hidden choice does not show up at all.
+@jump hub
+
+# topic_text
+@flow "Text Effects"
+Qaan: Text effects are BBCode tags around words. Godot has some built in: [wave]wave[/wave], [shake]shake[/shake], [tornado]tornado[/tornado], [rainbow]rainbow[/rainbow] and [pulse]pulse[/pulse].
+Qaan: These play once as the letters type: [pop]pop[/pop], [bounce]bounce[/bounce], [drop]drop[/drop], [grow]grow[/grow], [spin]spin[/spin] and [decode]decode[/decode].
+Qaan: These keep going: [jitter]jitter[/jitter], [glitch]glitch[/glitch], [ghost]ghost[/ghost], [heartbeat]heartbeat[/heartbeat] and [sway]sway[/sway].
+Qaan: Most take options too, like [jitter amp=4]a stronger jitter[/jitter] or a [pop time=0.8 rise=20]slow, high pop[/pop].
+@textfx glitch
+Qaan: And "@textfx glitch" breaks the whole line, like a bad radio signal, until "@textfx off".
+@textfx off
+Qaan: Turn on Reduce motion in Settings and the moving ones stand still. The colors stay.
 @jump hub
 
 # topic_notes

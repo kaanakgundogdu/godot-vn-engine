@@ -13,6 +13,8 @@ const SIDE_FADE_TIME: float = 0.15
 const SIDE_IMAGE_WIDTH: float = 232.0
 const SIDE_IMAGE_GAP: float = 24.0
 const SIDE_IMAGE_LEFT: float = 24.0
+const TEXT_GLITCH: Shader = preload("res://addons/vn_engine/src/ui/text_fx/text_glitch.gdshader")
+const GLITCH_GHOST: Color = Color(1.0, 0.2, 0.35, 0.613)
 const BLIP_SKIPPED: String = " \t\n.,;:!?'\"-()[]{}…—–“”‘’、。！？「」『』"
 
 @export var runner: VNEngineStoryRunner
@@ -70,6 +72,7 @@ var _blip_sound: AudioStream
 var _name_plate_style: StyleBoxFlat
 
 var _active_label: RichTextLabel
+var _fx_label: RichTextLabel
 var _applied_text_size: int = -1
 var _box_top_base: float = 0.0
 var _name_top_base: float = 0.0
@@ -127,7 +130,9 @@ func _ready() -> void:
 	_name_top_base = name_row.offset_top
 	_name_bottom_base = name_row.offset_bottom
 	dialog_label.scroll_active = false
+	VNEngineTextEffects.install(dialog_label)
 	_measure = dialog_label.duplicate(0) as RichTextLabel
+	VNEngineTextEffects.install(_measure, false)
 	_measure.visible = false
 	_measure.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_measure)
@@ -182,7 +187,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 		return
 
 	var markup: Dictionary = VNEngineTextMarkup.parse(runner.current_text)
-	var text: String = String(markup.get("text", ""))
+	var text: String = VNEngineTextEffects.prepare(String(markup.get("text", "")), VNEngineMain.game().get_ui().text_pop_in)
 
 	if _nvl_on:
 		if not nvl_page.fits(node.speaker_id, text, nvl_page.estimate_choices_height(runner.current_choices.size())):
@@ -200,6 +205,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 
 	_events = markup.get("events", [])
 	_no_wait = bool(markup.get("no_wait", false))
+	refresh_text_fx()
 
 	_maybe_play_auto_voice(node)
 
@@ -1051,6 +1057,7 @@ func _on_settings_changed() -> void:
 	_apply_window_opacity()
 	_apply_text_scale()
 	_refresh_pages()
+	refresh_text_fx()
 	_restart_text_tween()
 	if auto_timer:
 		auto_timer.wait_time = VNEngineMain.settings().auto_speed
@@ -1211,3 +1218,34 @@ func _settle_mode_visuals() -> void:
 		_last_speaker_text = ""
 	else:
 		nvl_page.clear()
+
+
+func refresh_text_fx() -> void:
+	var target: RichTextLabel = _active_label if _active_label != null else dialog_label
+	if _fx_label != null and is_instance_valid(_fx_label) and _fx_label != target:
+		_clear_text_fx(_fx_label)
+	_fx_label = null
+	var data: Dictionary = runner.state.text_fx if runner != null and runner.state != null else {}
+	if data.is_empty() or VNEngineUiMotion.reduced():
+		_clear_text_fx(target)
+		return
+	var material := ShaderMaterial.new()
+	material.shader = TEXT_GLITCH
+	material.set_shader_parameter(&"strength", float(data.get("strength", 0.6)))
+	material.set_shader_parameter(&"ghost_alpha", GLITCH_GHOST.a)
+	target.material = material
+	target.add_theme_color_override(&"font_shadow_color", GLITCH_GHOST)
+	target.add_theme_constant_override(&"shadow_offset_x", 0)
+	target.add_theme_constant_override(&"shadow_offset_y", 0)
+	target.add_theme_constant_override(&"shadow_outline_size", 0)
+	_fx_label = target
+
+
+func _clear_text_fx(label: RichTextLabel) -> void:
+	if label.material == null:
+		return
+	label.material = null
+	label.remove_theme_color_override(&"font_shadow_color")
+	label.remove_theme_constant_override(&"shadow_offset_x")
+	label.remove_theme_constant_override(&"shadow_offset_y")
+	label.remove_theme_constant_override(&"shadow_outline_size")
