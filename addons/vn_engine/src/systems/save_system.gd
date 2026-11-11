@@ -31,12 +31,11 @@ func save_game(state: VNEngineStoryState, slot_id: int) -> bool:
 		"ending_id": "",
 	}
 
-	var save_data: Dictionary = {
-		"engine": "vn_engine/0.5",
+	var save_data: Dictionary = VNEngineSaveFormat.stamp({
 		"saved_at": int(Time.get_unix_time_from_system()),
 		"meta": meta,
 		"state": state.to_dict(),
-	}
+	})
 
 	var file: FileAccess = FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
@@ -60,12 +59,21 @@ func load_game(slot_id: int) -> Variant:
 		VNEngineSaveData.SlotStatus.CORRUPT:
 			VNEngineLog.warn("VNEngineSaveSystem", "Save file could not be parsed: %s" % save_path)
 			return null
+		VNEngineSaveData.SlotStatus.NEWER:
+			VNEngineLog.warn("VNEngineSaveSystem", "Save file was made with a newer version: %s" % save_path)
+			return null
 
-	var raw: Variant = VNEngineSaveData.read_json_dict(save_path)
-	var result: Variant = _extract_state(raw)
+	var result: Variant = _extract_state(read_slot(slot_id))
 	if result != null:
 		loaded.emit(slot_id)
 	return result
+
+
+func read_slot(slot_id: int) -> Dictionary:
+	var raw: Variant = VNEngineSaveData.read_json_dict(VNEngineMain.save_data().slot_path(slot_id))
+	if raw == null or VNEngineSaveFormat.is_newer(raw):
+		return {}
+	return VNEngineSaveFormat.upgrade(raw, VNEngineSaveFormat.Kind.SLOT)
 
 
 func get_slot_status(slot_id: int) -> VNEngineSaveData.SlotStatus:
@@ -78,6 +86,8 @@ func get_slot_status(slot_id: int) -> VNEngineSaveData.SlotStatus:
 		return VNEngineSaveData.SlotStatus.CORRUPT
 
 	var raw_dict: Dictionary = raw
+	if VNEngineSaveFormat.is_newer(raw_dict):
+		return VNEngineSaveData.SlotStatus.NEWER
 	var state_data: Dictionary = raw_dict.get("state", {})
 	if state_data.is_empty():
 		return VNEngineSaveData.SlotStatus.CORRUPT

@@ -3,7 +3,7 @@ extends RefCounted
 
 signal global_changed
 
-enum SlotStatus {EMPTY, OK, CORRUPT}
+enum SlotStatus {EMPTY, OK, CORRUPT, NEWER}
 
 const QUICKSAVE_SLOT := 99
 const AUTOSAVE_FIRST_SLOT := 100
@@ -25,6 +25,7 @@ var global_data: Dictionary = {
 }
 
 var is_dirty: bool = false
+var is_read_only: bool = false
 
 var _save_dir: String = ""
 
@@ -220,15 +221,19 @@ func write_flow_snapshot(box_id: String, data: Dictionary) -> void:
 	if file == null:
 		VNEngineLog.warn("VNEngineSaveData", "Could not write flow snapshot: %s" % path)
 		return
-	file.store_string(JSON.stringify(data, "\t"))
+	file.store_string(JSON.stringify(VNEngineSaveFormat.stamp(data.duplicate()), "\t"))
 	file.close()
 
 
 func read_flow_snapshot(box_id: String) -> Dictionary:
-	var raw: Variant = read_json_dict(flow_snapshot_path(box_id))
+	var path: String = flow_snapshot_path(box_id)
+	var raw: Variant = read_json_dict(path)
 	if raw == null:
 		return {}
-	return raw
+	if VNEngineSaveFormat.is_newer(raw):
+		VNEngineLog.warn("VNEngineSaveData", "Flow snapshot was made with a newer version: %s" % path)
+		return {}
+	return VNEngineSaveFormat.upgrade(raw, VNEngineSaveFormat.Kind.FLOW)
 
 
 func has_flow_snapshot(box_id: String) -> bool:
@@ -263,9 +268,11 @@ func _global_data_path() -> String:
 
 
 func _save_global_data() -> void:
+	if is_read_only:
+		return
 	var file: FileAccess = FileAccess.open(_global_data_path(), FileAccess.WRITE)
 	if file != null:
-		file.store_string(JSON.stringify(global_data, "\t"))
+		file.store_string(JSON.stringify(VNEngineSaveFormat.stamp(global_data), "\t"))
 		file.close()
 
 
@@ -283,6 +290,11 @@ func _load_global_data() -> void:
 		VNEngineLog.error("VNEngineSaveData", "global_data.json could not be parsed, renamed to '%s', continuing with defaults" % corrupt_path)
 		return
 
+	if VNEngineSaveFormat.is_newer(raw):
+		is_read_only = true
+		VNEngineLog.warn("VNEngineSaveData", "global_data.json was made with a newer version, progress will not be saved")
+	else:
+		raw = VNEngineSaveFormat.upgrade(raw, VNEngineSaveFormat.Kind.GLOBAL)
 	global_data = _fill_global_defaults(raw)
 
 

@@ -187,6 +187,11 @@ func _build_card(slot_id: int, display_name: String) -> Button:
 			lbl.text = "Corrupted save"
 			tex_rect.modulate = Color(0, 0, 0, 0.5)
 			slot_btn.disabled = true
+		VNEngineSaveData.SlotStatus.NEWER:
+			lbl.text = "Made with a newer version"
+			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			tex_rect.modulate = Color(0, 0, 0, 0.5)
+			slot_btn.disabled = not is_save_mode
 		_:
 			lbl.text = display_name + " (Empty)"
 			tex_rect.modulate = Color(0, 0, 0, 0.5)
@@ -203,16 +208,17 @@ func _on_slot_pressed(slot_id: int) -> void:
 
 
 func _handle_save_slot_pressed(slot_id: int) -> void:
-	var occupied: bool = VNEngineMain.saves().get_slot_status(slot_id) != VNEngineSaveData.SlotStatus.EMPTY
+	var status: VNEngineSaveData.SlotStatus = VNEngineMain.saves().get_slot_status(slot_id)
 	var manifest: VNEngineGameManifest = VNEngineMain.game().get_manifest()
 	var ui_def: VNEngineUiDef = manifest.get_ui() if manifest != null else VNEngineUiDef.new()
+	var newer: bool = status == VNEngineSaveData.SlotStatus.NEWER
 
-	if not (occupied and ui_def.confirm_overwrite_save):
+	if not newer and (status == VNEngineSaveData.SlotStatus.EMPTY or not ui_def.confirm_overwrite_save):
 		save_requested.emit(slot_id)
 		return
 
 	VNEngineMain.game().open_overlay(&"confirm", {
-		"message": "Overwrite this save?",
+		"message": "This save was made with a newer version. Overwrite it?" if newer else "Overwrite this save?",
 		"confirm_text": "Overwrite",
 		"cancel_text": "Cancel",
 	}).confirmed.connect(_on_overwrite_confirmed.bind(slot_id))

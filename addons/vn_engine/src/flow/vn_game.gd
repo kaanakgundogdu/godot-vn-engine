@@ -216,17 +216,7 @@ func _resume_stage_via_loading(chapter: VNEngineChapterDef) -> void:
 func _slot_chapter(slot_id: int) -> VNEngineChapterDef:
 	if manifest == null:
 		return null
-	var path: String = VNEngineMain.save_data().slot_path(slot_id)
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return null
-	var text: String = file.get_as_text()
-	file.close()
-
-	var parsed: Variant = JSON.parse_string(text)
-	if not (parsed is Dictionary):
-		return null
-	var meta: Dictionary = (parsed as Dictionary).get("meta", {})
+	var meta: Dictionary = VNEngineMain.saves().read_slot(slot_id).get("meta", {})
 	var chapter_id: String = String(meta.get("chapter_id", ""))
 	if chapter_id == "":
 		return null

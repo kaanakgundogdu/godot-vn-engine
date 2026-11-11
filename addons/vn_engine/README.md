@@ -105,7 +105,8 @@ as they are:
 
 `{game_id}` is the `game_id` in your `game.tres`. So every game gets its
 own saves and settings, and the engine never writes over your own save
-files.
+files. Saves made with an older version of the engine still load after you
+update the addon.
 
 See [Config files](#config-files) for what each file does.
 
