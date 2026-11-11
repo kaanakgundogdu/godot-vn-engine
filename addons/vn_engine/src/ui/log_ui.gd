@@ -13,10 +13,18 @@ const SEPARATOR_COLOR := Color(1.0, 1.0, 1.0, 0.12)
 @onready var scroll_container: ScrollContainer = %ScrollContainer
 @onready var log_container: VBoxContainer = %LogContainer
 
+var _contrast_back: ColorRect
+
 
 func _ready() -> void:
 	hide()
 	close_btn.pressed.connect(_on_close_pressed)
+	_contrast_back = ColorRect.new()
+	_contrast_back.color = VNEngineHighContrast.BACK
+	_contrast_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_contrast_back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_contrast_back.hide()
+	add_child(_contrast_back, false, Node.INTERNAL_MODE_FRONT)
 
 	if runner:
 		runner.state_restored.connect(_on_state_restored)
@@ -35,6 +43,7 @@ func set_runner(r: VNEngineStoryRunner) -> void:
 
 
 func open_panel() -> void:
+	_contrast_back.visible = VNEngineHighContrast.on()
 	_rebuild()
 	show()
 	_scroll_to_bottom.call_deferred()
@@ -112,13 +121,17 @@ func _build_entry(entry: Dictionary) -> Control:
 	text_label.scroll_active = false
 	text_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	VNEngineSettings.apply_text_scale(text_label, get_theme_default_font_size())
+	VNEngineSettings.apply_story_text(text_label, get_theme_default_font_size())
 	VNEngineTextEffects.install(text_label, false)
 
 	var display_text: String = VNEngineTextEffects.prepare(text_raw)
+	var contrast: bool = VNEngineHighContrast.on()
+	if contrast:
+		text_label.add_theme_color_override("default_color", VNEngineHighContrast.TEXT)
 	if is_narrator or speaker_id == "":
 		text_label.text = "[i]%s[/i]" % display_text
-		text_label.modulate = Color(1.0, 1.0, 1.0, NARRATOR_DIM)
+		if not contrast:
+			text_label.modulate = Color(1.0, 1.0, 1.0, NARRATOR_DIM)
 	else:
 		text_label.text = display_text
 
@@ -133,6 +146,7 @@ func _build_name_row(speaker_id: String, line_id: String, char_entry: VNEngineCa
 	var name_label := Label.new()
 	var display_name: String = char_entry.display_name if char_entry != null and char_entry.display_name != "" else speaker_id.capitalize().to_upper()
 	name_label.text = display_name
+	VNEngineSettings.apply_story_font(name_label)
 	name_label.add_theme_constant_override("outline_size", 4)
 	name_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.55))
 	name_label.add_theme_color_override("font_color", _name_color(char_entry))

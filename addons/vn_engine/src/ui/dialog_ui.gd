@@ -13,6 +13,7 @@ const SIDE_FADE_TIME: float = 0.15
 const SIDE_IMAGE_WIDTH: float = 232.0
 const SIDE_IMAGE_GAP: float = 24.0
 const SIDE_IMAGE_LEFT: float = 24.0
+const SPEECH_POLL: float = 0.25
 const TEXT_GLITCH: Shader = preload("res://addons/vn_engine/src/ui/text_fx/text_glitch.gdshader")
 const GLITCH_GHOST: Color = Color(1.0, 0.2, 0.35, 0.613)
 const BLIP_SKIPPED: String = " \t\n.,;:!?'\"-()[]{}…—–“”‘’、。！？「」『』"
@@ -74,6 +75,8 @@ var _name_plate_style: StyleBoxFlat
 var _active_label: RichTextLabel
 var _fx_label: RichTextLabel
 var _applied_text_size: int = -1
+var _applied_style: String = ""
+var _box_style: StyleBox = null
 var _box_top_base: float = 0.0
 var _name_top_base: float = 0.0
 var _name_bottom_base: float = 0.0
@@ -122,9 +125,9 @@ func _ready() -> void:
 		name_row.alignment = BoxContainer.ALIGNMENT_CENTER if _dialog_name_align() == "center" else BoxContainer.ALIGNMENT_BEGIN
 
 	if background_box:
-		var box_style: StyleBox = background_box.get_theme_stylebox("panel")
-		if box_style is StyleBoxFlat:
-			nvl_page.set_backdrop_color((box_style as StyleBoxFlat).bg_color)
+		_box_style = background_box.get_theme_stylebox("panel")
+		if _box_style is StyleBoxFlat:
+			nvl_page.set_backdrop_color((_box_style as StyleBoxFlat).bg_color)
 
 	_box_top_base = background_box.offset_top
 	_name_top_base = name_row.offset_top
@@ -213,6 +216,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	_setup_blips(node.speaker_id)
 	if not _nvl_on:
 		_start_pages(text)
+	_speak_line(node)
 	_typing = true
 	_build_chain()
 
@@ -467,6 +471,9 @@ func _turn_page(page: int) -> void:
 	_page_start = _page_starts[page]
 	dialog_label.text = VNEngineTextMarkup.slice_from(_full_text, _page_start)
 	dialog_label.visible_characters = 0
+	var speech: VNEngineSpeech = VNEngineMain.speech()
+	if speech != null and not runner.is_skip and not _voice_playing():
+		speech.speak(_page_text(page), true)
 
 
 func _turn_page_if_due() -> void:
@@ -500,7 +507,7 @@ func _text_limit() -> float:
 
 
 func _layout_key() -> String:
-	return "%d:%d:%d" % [roundi(_text_width()), roundi(_text_limit()), _applied_text_size]
+	return "%d:%d:%d:%s" % [roundi(_text_width()), roundi(_text_limit()), _applied_text_size, _applied_style]
 
 
 func _refresh_pages() -> bool:
@@ -751,6 +758,21 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
+func _speak_line(node: VNEngineStoryNode) -> void:
+	var speech: VNEngineSpeech = VNEngineMain.speech()
+	if speech == null or runner.is_skip or _voice_playing():
+		return
+	var speaker: String = "" if _is_narrator(node.speaker_id) else _speaker_name(node.speaker_id)
+	var text: String = _page_text(0) if not _nvl_on else _active_label.get_parsed_text()
+	speech.speak(text if speaker == "" else "%s: %s" % [speaker, text])
+
+
+func _page_text(page: int) -> String:
+	var start: int = _page_starts[page] if page < _page_starts.size() else 0
+	var end: int = _page_starts[page + 1] if page + 1 < _page_starts.size() else _parsed_text.length()
+	return _parsed_text.substr(start, end - start)
+
+
 func _maybe_play_auto_voice(node: VNEngineStoryNode) -> void:
 	var has_manual_voice: bool = false
 	for cmd in node.commands:
@@ -891,7 +913,9 @@ func _fade_in_name_plate() -> void:
 
 func _apply_seen_color() -> void:
 	var ui_def: VNEngineUiDef = VNEngineMain.game().get_ui()
-	if not _nvl_on and ui_def.mark_seen_text and VNEngineMain.settings().mark_read_text and runner != null and runner.line_seen_before:
+	if VNEngineHighContrast.on():
+		_active_label.add_theme_color_override("default_color", VNEngineHighContrast.TEXT)
+	elif not _nvl_on and ui_def.mark_seen_text and VNEngineMain.settings().mark_read_text and runner != null and runner.line_seen_before:
 		_active_label.add_theme_color_override("default_color", ui_def.seen_text_color)
 	else:
 		_active_label.remove_theme_color_override("default_color")
@@ -957,6 +981,8 @@ func _hide_continue_indicator() -> void:
 
 
 func _on_mode_changed() -> void:
+	if runner.is_skip:
+		_stop_speech()
 	if _typing:
 		if runner.is_skip:
 			_reveal_to_end()
@@ -997,6 +1023,7 @@ func _advance_dialog() -> void:
 			_reveal_to_next_stop()
 	else:
 		_cancel_voice_wait()
+		_stop_speech()
 		_line_serial += 1
 		if runner:
 			runner.next_node()
@@ -1008,7 +1035,17 @@ func _on_auto_timer_timeout() -> void:
 	if _voice_playing():
 		_begin_voice_wait()
 		return
+	var speech: VNEngineSpeech = VNEngineMain.speech()
+	if speech != null and speech.is_speaking():
+		auto_timer.start(SPEECH_POLL)
+		return
 	runner.next_node()
+
+
+func _stop_speech() -> void:
+	var speech: VNEngineSpeech = VNEngineMain.speech()
+	if speech != null:
+		speech.stop()
 
 
 func _voice_playing() -> bool:
@@ -1056,6 +1093,8 @@ func _is_input_locked() -> bool:
 func _on_settings_changed() -> void:
 	_apply_window_opacity()
 	_apply_text_scale()
+	if is_instance_valid(_active_label):
+		_apply_seen_color()
 	_refresh_pages()
 	refresh_text_fx()
 	_restart_text_tween()
@@ -1066,12 +1105,15 @@ func _on_settings_changed() -> void:
 func _apply_text_scale() -> void:
 	var base: int = get_theme_default_font_size()
 	var size: int = VNEngineSettings.scaled_font_size(base)
-	if size == _applied_text_size:
+	var style: String = "%s:%s" % [VNEngineMain.settings().story_font, VNEngineHighContrast.on()]
+	if size == _applied_text_size and style == _applied_style:
 		return
 	var first: bool = _applied_text_size < 0
 	_applied_text_size = size
-	VNEngineSettings.apply_text_scale(dialog_label, base)
-	VNEngineSettings.apply_text_scale(_measure, base)
+	_applied_style = style
+	VNEngineSettings.apply_story_text(dialog_label, base)
+	VNEngineSettings.apply_story_text(_measure, base)
+	VNEngineSettings.apply_story_font(speaker_label)
 	var grow: float = round(ADV_BOX_GROWTH * maxf(float(size) / base - 1.0, 0.0))
 	background_box.offset_top = _box_top_base - grow
 	name_row.offset_top = _name_top_base - grow
@@ -1101,7 +1143,13 @@ func _apply_text_scale() -> void:
 func _apply_window_opacity() -> void:
 	if background_box == null:
 		return
-	var opacity: float = clampf(VNEngineMain.settings().window_opacity, 0.0, 1.0)
+	var contrast: bool = VNEngineHighContrast.on()
+	if contrast:
+		background_box.add_theme_stylebox_override("panel", VNEngineHighContrast.box(_box_style))
+	else:
+		background_box.remove_theme_stylebox_override("panel")
+	nvl_page.apply_backdrop()
+	var opacity: float = 1.0 if contrast else clampf(VNEngineMain.settings().window_opacity, 0.0, 1.0)
 	background_box.self_modulate = Color(1.0, 1.0, 1.0, opacity)
 	nvl_page.backdrop.self_modulate = Color(1.0, 1.0, 1.0, opacity)
 
@@ -1130,6 +1178,7 @@ func _on_nvl_page_cleared() -> void:
 
 
 func _on_state_restored(_state: VNEngineStoryState) -> void:
+	_stop_speech()
 	if runner.is_nvl() != _nvl_on:
 		_switch_mode(runner.is_nvl(), true)
 	if not _nvl_on:

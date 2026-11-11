@@ -13,6 +13,10 @@ const TEXT_SCALE_MIN := 0.8
 const TEXT_SCALE_MAX := 1.4
 const TEXT_SCALE_STEP := 0.1
 const _RICH_SIZE_KEYS: Array[String] = ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]
+const _RICH_FONT_KEYS: Dictionary = {"normal_font": [false, false], "bold_font": [true, false], "italics_font": [false, true], "bold_italics_font": [true, true]}
+
+const TTS_RATE_MIN := 0.5
+const TTS_RATE_MAX := 2.0
 
 const WINDOW_SIZES: Array[Vector2i] = [
 	Vector2i(960, 540),
@@ -44,6 +48,10 @@ var mark_read_text: bool = true
 var window_opacity: float = 0.85
 var text_blips: bool = true
 var reduce_motion: bool = false
+var story_font: String = VNEngineStoryFonts.DEFAULT
+var high_contrast: bool = false
+var tts: bool = false
+var tts_rate: float = 1.0
 
 var autosave: bool = true
 
@@ -89,13 +97,34 @@ static func scaled_font_size(base: int) -> int:
 	return int(round(base * factor))
 
 
-static func apply_text_scale(node: Control, base: int) -> void:
+static func apply_story_text(node: Control, base: int) -> void:
 	var size: int = scaled_font_size(base)
 	if node is RichTextLabel:
 		for key: String in _RICH_SIZE_KEYS:
 			node.add_theme_font_size_override(key, size)
 	else:
 		node.add_theme_font_size_override("font_size", size)
+	apply_story_font(node)
+
+
+static func apply_story_font(node: Control, id: String = "") -> void:
+	if id == "":
+		var settings: VNEngineSettings = VNEngineMain.settings()
+		id = VNEngineStoryFonts.DEFAULT if settings == null else settings.story_font
+	if node is RichTextLabel:
+		for key: String in _RICH_FONT_KEYS:
+			var style: Array = _RICH_FONT_KEYS[key]
+			var font: Font = VNEngineStoryFonts.font_for(id, style[0], style[1])
+			if font == null:
+				node.remove_theme_font_override(key)
+			else:
+				node.add_theme_font_override(key, font)
+		return
+	var plain: Font = VNEngineStoryFonts.font_for(id, false, false)
+	if plain == null:
+		node.remove_theme_font_override("font")
+	else:
+		node.add_theme_font_override("font", plain)
 
 
 static func set_focus_muted(muted: bool) -> void:
@@ -127,6 +156,10 @@ func copy_from(other: VNEngineSettings) -> void:
 	skip_unread = other.skip_unread
 	mark_read_text = other.mark_read_text
 	window_opacity = other.window_opacity
+	story_font = other.story_font
+	high_contrast = other.high_contrast
+	tts = other.tts
+	tts_rate = other.tts_rate
 	text_blips = other.text_blips
 	reduce_motion = other.reduce_motion
 	autosave = other.autosave
@@ -284,6 +317,10 @@ func _to_dict() -> Dictionary:
 		"window_opacity": window_opacity,
 		"text_blips": text_blips,
 		"reduce_motion": reduce_motion,
+		"story_font": story_font,
+		"high_contrast": high_contrast,
+		"tts": tts,
+		"tts_rate": tts_rate,
 		"autosave": autosave,
 		"input_overrides": input_overrides,
 	}
@@ -344,6 +381,14 @@ func _load_from_disk() -> void:
 		text_blips = bool(loaded["text_blips"])
 	if loaded.has("reduce_motion"):
 		reduce_motion = bool(loaded["reduce_motion"])
+	if loaded.has("story_font") and VNEngineStoryFonts.IDS.has(String(loaded["story_font"])):
+		story_font = String(loaded["story_font"])
+	if loaded.has("high_contrast"):
+		high_contrast = bool(loaded["high_contrast"])
+	if loaded.has("tts"):
+		tts = bool(loaded["tts"])
+	if loaded.has("tts_rate"):
+		tts_rate = clampf(float(loaded["tts_rate"]), TTS_RATE_MIN, TTS_RATE_MAX)
 	if loaded.has("autosave"):
 		autosave = bool(loaded["autosave"])
 	if loaded.has("input_overrides") and loaded["input_overrides"] is Dictionary:

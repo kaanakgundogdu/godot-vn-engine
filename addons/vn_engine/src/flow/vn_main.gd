@@ -13,6 +13,7 @@ const CARD_OVERLAY_SCENE: PackedScene = preload("res://addons/vn_engine/src/ui/s
 const AUDIO_SYSTEM_SCENE: PackedScene = preload("res://addons/vn_engine/src/systems/scenes/audio_system.tscn")
 const TRANSITION_PLAYER_SCRIPT: GDScript = preload("res://addons/vn_engine/src/flow/transition_player.gd")
 const SAVE_SYSTEM_SCRIPT: GDScript = preload("res://addons/vn_engine/src/systems/save_system.gd")
+const SPEECH_SCRIPT: GDScript = preload("res://addons/vn_engine/src/systems/speech.gd")
 const GAME_SCRIPT: GDScript = preload("res://addons/vn_engine/src/flow/vn_game.gd")
 const SAVE_TOAST_SCRIPT: GDScript = preload("res://addons/vn_engine/src/ui/save_toast.gd")
 
@@ -48,6 +49,7 @@ var dev_overlay: Control = null
 @onready var persistent_audio: VNEngineAudioSystem = $Systems/PersistentAudio
 @onready var _game: VNEngineGame = $Systems/Game
 @onready var _saves: VNEngineSaveSystem = $Systems/Saves
+@onready var _speech: VNEngineSpeech = $Systems/Speech
 
 
 const DEFAULT_THEME_PATH := "res://addons/vn_engine/src/themes/vn_default.tres"
@@ -119,6 +121,10 @@ func _build_tree() -> void:
 	saves_node.name = "Saves"
 	saves_node.set_script(SAVE_SYSTEM_SCRIPT)
 	systems_node.add_child(saves_node)
+	var speech_node := Node.new()
+	speech_node.name = "Speech"
+	speech_node.set_script(SPEECH_SCRIPT)
+	systems_node.add_child(speech_node)
 
 
 func _add_layer(layer_name: String, layer_index: int) -> CanvasLayer:
@@ -269,6 +275,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
+	if event.is_action_pressed(VNEngineInput.TTS_TOGGLE):
+		_speech.toggle()
+		get_viewport().set_input_as_handled()
+		return
+
 	if input_locked():
 		return
 
@@ -327,6 +338,12 @@ static func saves() -> VNEngineSaveSystem:
 	if _current == null:
 		return null
 	return _current._saves
+
+
+static func speech() -> VNEngineSpeech:
+	if _current == null:
+		return null
+	return _current._speech
 
 
 static func game() -> VNEngineGame:

@@ -108,6 +108,10 @@ own saves and settings, and the engine never writes over your own save
 files. Saves made with an older version of the engine still load after you
 update the addon.
 
+To let players hear the text read aloud (Settings > Accessibility), turn on
+Project Settings > Audio > General > Text to Speech. The addon does not change
+your project settings for you.
+
 See [Config files](#config-files) for what each file does.
 
 

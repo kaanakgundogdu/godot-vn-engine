@@ -41,6 +41,12 @@ var _draft: VNEngineSettings
 @onready var dialog_opacity_label: Label = %DialogOpacityLabel
 @onready var autosave_toggle: CheckButton = %AutosaveToggle
 @onready var reduce_motion_toggle: CheckButton = %ReduceMotionToggle
+@onready var story_font_option: OptionButton = %StoryFontOption
+@onready var story_font_preview: RichTextLabel = %StoryFontPreview
+@onready var high_contrast_toggle: CheckButton = %HighContrastToggle
+@onready var read_aloud_toggle: CheckButton = %ReadAloudToggle
+@onready var speech_rate_slider: HSlider = %SpeechRateSlider
+@onready var speech_rate_label: Label = %SpeechRateLabel
 
 var controls_page: VNEngineControlsPage
 
@@ -68,6 +74,14 @@ func _ready() -> void:
 	dialog_opacity_slider.value_changed.connect(_on_dialog_opacity_changed)
 	autosave_toggle.toggled.connect(_on_autosave_toggled)
 	reduce_motion_toggle.toggled.connect(_on_reduce_motion_toggled)
+	for id: String in VNEngineStoryFonts.IDS:
+		story_font_option.add_item(VNEngineStoryFonts.NAMES[id])
+	story_font_option.item_selected.connect(_on_story_font_selected)
+	high_contrast_toggle.toggled.connect(_on_high_contrast_toggled)
+	read_aloud_toggle.toggled.connect(_on_read_aloud_toggled)
+	speech_rate_slider.min_value = VNEngineSettings.TTS_RATE_MIN
+	speech_rate_slider.max_value = VNEngineSettings.TTS_RATE_MAX
+	speech_rate_slider.value_changed.connect(_on_speech_rate_changed)
 
 	controls_page = VNEngineControlsPage.new()
 	controls_page.name = "Controls"
@@ -139,6 +153,16 @@ func _refresh_controls() -> void:
 	dialog_opacity_label.text = _format_percent(_draft.window_opacity)
 	autosave_toggle.set_pressed_no_signal(_draft.autosave)
 	reduce_motion_toggle.set_pressed_no_signal(_draft.reduce_motion)
+	story_font_option.select(VNEngineStoryFonts.IDS.find(_draft.story_font))
+	_apply_font_preview()
+	high_contrast_toggle.set_pressed_no_signal(_draft.high_contrast)
+	var speech: VNEngineSpeech = VNEngineMain.speech()
+	var tts_available: bool = speech != null and speech.available()
+	read_aloud_toggle.get_parent().visible = tts_available
+	speech_rate_slider.get_parent().visible = tts_available
+	read_aloud_toggle.set_pressed_no_signal(_draft.tts)
+	speech_rate_slider.set_value_no_signal(_draft.tts_rate)
+	speech_rate_label.text = _format_rate(_draft.tts_rate)
 
 	_play_text_speed_preview()
 
@@ -183,6 +207,17 @@ func _play_text_speed_preview() -> void:
 
 	_preview_tween = create_tween()
 	_preview_tween.tween_property(text_speed_preview, "visible_characters", total_chars, duration)
+
+
+func _format_rate(value: float) -> String:
+	return "%.1fx" % value
+
+
+func _apply_font_preview() -> void:
+	var base: int = get_theme_default_font_size()
+	for key: String in ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
+		story_font_preview.add_theme_font_size_override(key, base)
+	VNEngineSettings.apply_story_font(story_font_preview, _draft.story_font)
 
 
 func _format_percent(value: float) -> String:
@@ -281,3 +316,21 @@ func _on_autosave_toggled(button_pressed: bool) -> void:
 
 func _on_reduce_motion_toggled(button_pressed: bool) -> void:
 	_draft.reduce_motion = button_pressed
+
+
+func _on_story_font_selected(index: int) -> void:
+	_draft.story_font = VNEngineStoryFonts.IDS[index]
+	_apply_font_preview()
+
+
+func _on_high_contrast_toggled(button_pressed: bool) -> void:
+	_draft.high_contrast = button_pressed
+
+
+func _on_read_aloud_toggled(button_pressed: bool) -> void:
+	_draft.tts = button_pressed
+
+
+func _on_speech_rate_changed(value: float) -> void:
+	_draft.tts_rate = snappedf(value, 0.1)
+	speech_rate_label.text = _format_rate(_draft.tts_rate)

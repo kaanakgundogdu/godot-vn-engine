@@ -231,6 +231,8 @@ static func _lint_command(cmd: Dictionary, script: VNEngineStoryScript, reachabl
 			_lint_weather(args, line_no, script)
 		"textfx":
 			_lint_textfx(args, line_no, script)
+		"tts":
+			_lint_tts(args, line_no, script)
 		"nvl":
 			if args.strip_edges().to_lower() not in ["", "clear"]:
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@nvl' only accepts 'clear': '%s'" % args))
@@ -309,6 +311,15 @@ static func _lint_textfx(args: String, line_no: int, script: VNEngineStoryScript
 				script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@textfx' strength must be a number between 0.05 and 1: '%s'" % number))
 		else:
 			script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@textfx' has an unknown parameter: '%s'" % token))
+
+
+static func _lint_tts(args: String, line_no: int, script: VNEngineStoryScript) -> void:
+	var text: String = args.strip_edges()
+	if text.length() < 2 or not text.begins_with("\"") or not text.ends_with("\""):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.ERROR, line_no, "'@tts' expects text in quotes: @tts \"Hana slams the door.\""))
+		return
+	if not ProjectSettings.get_setting(VNEngineSpeech.PROJECT_SETTING, false):
+		script.diagnostics.append(VNEngineParseDiagnostic.new(VNEngineParseDiagnostic.Severity.WARNING, line_no, "'@tts' is only read when Project Settings > Audio > General > Text to Speech is on"))
 
 
 static func _lint_weather(args: String, line_no: int, script: VNEngineStoryScript) -> void:

@@ -16,7 +16,8 @@ var _rows: Array[Control] = []
 var _entries: Array[Dictionary] = []
 var _heights: Array[float] = []
 var _measure_label: RichTextLabel
-var _measure_size: int = -1
+var _measure_key: String = ""
+var _backdrop_color: Variant = null
 
 @onready var backdrop: Panel = $Backdrop
 @onready var content: VBoxContainer = $Content
@@ -46,7 +47,7 @@ func add_entry(speaker_id: String, text: String, kind: String) -> RichTextLabel:
 	var speaker_name: String = "" if kind == "choice" else _display_name(speaker_id)
 	var gap: float = _gap_before(speaker_id, kind)
 	for old_row in _rows:
-		old_row.modulate = PAST_DIM
+		old_row.modulate = _past_dim()
 	var row := MarginContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("margin_top", int(gap))
@@ -55,7 +56,7 @@ func add_entry(speaker_id: String, text: String, kind: String) -> RichTextLabel:
 	if kind == "choice":
 		row.add_theme_constant_override("margin_left", int(text_column_x()))
 		label.text = "> " + text
-		row.modulate = PAST_DIM
+		row.modulate = _past_dim()
 		row.add_child(label)
 	elif speaker_name == "":
 		label.text = text
@@ -73,7 +74,7 @@ func add_entry(speaker_id: String, text: String, kind: String) -> RichTextLabel:
 		name_label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.add_theme_color_override("font_color", _name_color(speaker_id))
-		VNEngineSettings.apply_text_scale(name_label, get_theme_default_font_size())
+		VNEngineSettings.apply_story_text(name_label, get_theme_default_font_size())
 		label.text = text
 		line.add_child(name_label)
 		line.add_child(label)
@@ -150,16 +151,29 @@ func text_column_x() -> float:
 
 
 func set_backdrop_color(color: Color) -> void:
+	_backdrop_color = color
+	apply_backdrop()
+
+
+func apply_backdrop() -> void:
+	var contrast: bool = VNEngineHighContrast.on()
+	if not contrast and _backdrop_color == null:
+		backdrop.remove_theme_stylebox_override("panel")
+		return
 	var style := StyleBoxFlat.new()
-	style.bg_color = color
+	style.bg_color = VNEngineHighContrast.BACK if contrast else _backdrop_color
 	backdrop.add_theme_stylebox_override("panel", style)
 
 
+func _past_dim() -> Color:
+	return Color.WHITE if VNEngineHighContrast.on() else PAST_DIM
+
+
 func _measure(speaker_name: String, text: String, kind: String) -> float:
-	var font_size: int = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
-	if font_size != _measure_size:
-		_measure_size = font_size
-		VNEngineSettings.apply_text_scale(_measure_label, get_theme_default_font_size())
+	var key: String = "%d:%s" % [VNEngineSettings.scaled_font_size(get_theme_default_font_size()), VNEngineMain.settings().story_font]
+	if key != _measure_key:
+		_measure_key = key
+		VNEngineSettings.apply_story_text(_measure_label, get_theme_default_font_size())
 	var width: float = content.size.x
 	if kind == "choice" or speaker_name != "":
 		width -= text_column_x()
@@ -205,7 +219,9 @@ func _make_text_label() -> RichTextLabel:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_constant_override("line_separation", LINE_SEPARATION)
-	VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
+	VNEngineSettings.apply_story_text(label, get_theme_default_font_size())
+	if VNEngineHighContrast.on():
+		label.add_theme_color_override("default_color", VNEngineHighContrast.TEXT)
 	VNEngineTextEffects.install(label)
 	return label
 

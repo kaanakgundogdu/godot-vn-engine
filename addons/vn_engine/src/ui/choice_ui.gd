@@ -18,6 +18,7 @@ const NVL_ROW_PAD: float = 4.0
 const NVL_DIAL_SIZE: Vector2 = Vector2(64, 64)
 const NVL_LINE_SEPARATION: int = 6
 const DIAL_SIZE: Vector2 = Vector2(88, 88)
+const CONTRAST_STYLES: Array[String] = ["normal", "disabled", "hover", "pressed", "hover_pressed", "focus"]
 
 @export var runner: VNEngineStoryRunner
 @export var button_container: VBoxContainer
@@ -34,7 +35,7 @@ var _build_id: int = 0
 var _nvl_box: VBoxContainer = null
 var _nvl_texts: Dictionary = {}
 var _choice_labels: Array[RichTextLabel] = []
-var _applied_text_size: int = -1
+var _applied_text_key: String = ""
 
 
 func _ready() -> void:
@@ -56,7 +57,7 @@ func _ready() -> void:
 	var settings: VNEngineSettings = VNEngineMain.settings()
 	if settings != null:
 		settings.changed.connect(_on_settings_changed)
-	_applied_text_size = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
+	_applied_text_key = _text_key()
 
 
 func _process(_delta: float) -> void:
@@ -65,15 +66,20 @@ func _process(_delta: float) -> void:
 	_timer_dial.set_time(_choice_timer.time_left, _choice_timer.wait_time)
 
 
+func _text_key() -> String:
+	return "%d:%s" % [VNEngineSettings.scaled_font_size(get_theme_default_font_size()), VNEngineMain.settings().story_font]
+
+
 func _on_settings_changed() -> void:
-	var size: int = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
-	if size == _applied_text_size:
+	_refresh_contrast()
+	var key: String = _text_key()
+	if key == _applied_text_key:
 		return
-	_applied_text_size = size
+	_applied_text_key = key
 	var live: Array[RichTextLabel] = []
 	for label in _choice_labels:
 		if is_instance_valid(label):
-			VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
+			VNEngineSettings.apply_story_text(label, get_theme_default_font_size())
 			live.append(label)
 	if live.is_empty():
 		return
@@ -104,7 +110,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 
 	_clear_buttons()
 	_build_id += 1
-	_applied_text_size = VNEngineSettings.scaled_font_size(get_theme_default_font_size())
+	_applied_text_key = _text_key()
 	var build_id: int = _build_id
 	var ui_def: VNEngineUiDef = VNEngineMain.game().get_ui()
 	var chapter_id: String = runner.script_res.chapter_id if runner != null and runner.script_res != null else ""
@@ -138,6 +144,8 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		btn.custom_minimum_size.y = 72
 		btn.custom_minimum_size.x = box_width
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if VNEngineHighContrast.on():
+			_apply_contrast_styles(btn)
 		if ui_def.ui_animations:
 			btn.modulate.a = 0.0
 
@@ -147,11 +155,13 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		label.scroll_active = false
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
+		VNEngineSettings.apply_story_text(label, get_theme_default_font_size())
 		VNEngineTextEffects.install(label, false)
 		label.text = VNEngineTextEffects.prepare(VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars)))
-		if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
+		if _dims_chosen(ui_def, save_data, chapter_id, choice):
 			label.modulate = CHOSEN_DIM
+		if VNEngineHighContrast.on():
+			label.add_theme_color_override("default_color", VNEngineHighContrast.TEXT)
 		label.custom_minimum_size.x = content_width
 		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 16)
 		btn.add_child(label)
@@ -167,6 +177,8 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		btn.mouse_exited.connect(_on_button_hover.bind(btn, false))
 		button_container.add_child(btn)
 		_choice_buttons[choice] = btn
+
+	_speak_choices(choices, vars)
 
 	if not choice_timer_data.is_empty() and not choices.is_empty():
 		var timer_seconds: float = float(choice_timer_data.get("seconds", 0.0))
@@ -223,6 +235,50 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 			_play_enter_animation(ui_def.ui_animation_scale)
 
 
+func _speak_choices(choices: Array[VNEngineChoiceOption], vars: Dictionary) -> void:
+	var speech: VNEngineSpeech = VNEngineMain.speech()
+	if speech == null or (runner != null and runner.is_skip):
+		return
+	for choice in choices:
+		var text: String = VNEngineSpeech.plain_text(VNEngineTextMarkup.interpolate(choice.text, vars))
+		if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
+			if not (text.ends_with(".") or text.ends_with("!") or text.ends_with("?")):
+				text += "."
+			text = "Locked: %s %s" % [text, VNEngineTextMarkup.interpolate(choice.hint, vars)]
+		speech.speak(text)
+
+
+func _dims_chosen(ui_def: VNEngineUiDef, save_data: VNEngineSaveData, chapter_id: String, choice: VNEngineChoiceOption) -> bool:
+	if VNEngineHighContrast.on() or not ui_def.mark_chosen_choices or save_data == null or choice.line_id == "":
+		return false
+	return save_data.is_choice_chosen(chapter_id, choice.line_id)
+
+
+func _refresh_contrast() -> void:
+	var contrast: bool = VNEngineHighContrast.on()
+	for btn: Button in _choice_buttons.values():
+		if not is_instance_valid(btn) or btn.flat:
+			continue
+		for style_name in CONTRAST_STYLES:
+			btn.remove_theme_stylebox_override(style_name)
+		if contrast:
+			_apply_contrast_styles(btn)
+		for label in btn.find_children("*", "RichTextLabel", false, false):
+			if contrast:
+				label.add_theme_color_override("default_color", VNEngineHighContrast.TEXT)
+			else:
+				label.remove_theme_color_override("default_color")
+
+
+func _apply_contrast_styles(btn: Button) -> void:
+	for style_name in ["normal", "disabled"]:
+		btn.add_theme_stylebox_override(style_name, VNEngineHighContrast.box(btn.get_theme_stylebox(style_name)))
+	for style_name in ["hover", "pressed", "hover_pressed", "focus"]:
+		var lit: StyleBoxFlat = VNEngineHighContrast.box(btn.get_theme_stylebox(style_name))
+		lit.set_border_width_all(VNEngineHighContrast.BORDER_WIDTH * 2)
+		btn.add_theme_stylebox_override(style_name, lit)
+
+
 func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictionary, ui_def: VNEngineUiDef, chapter_id: String, save_data: VNEngineSaveData, labels: Array[RichTextLabel]) -> Button:
 	var btn := Button.new()
 	btn.flat = true
@@ -239,10 +295,10 @@ func _make_nvl_button(choice: VNEngineChoiceOption, text: String, vars: Dictiona
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_constant_override("line_separation", NVL_LINE_SEPARATION)
-	VNEngineSettings.apply_text_scale(label, get_theme_default_font_size())
+	VNEngineSettings.apply_story_text(label, get_theme_default_font_size())
 	VNEngineTextEffects.install(label, false)
 	label.text = "> " + VNEngineTextEffects.prepare(text)
-	if ui_def.mark_chosen_choices and save_data != null and choice.line_id != "" and save_data.is_choice_chosen(chapter_id, choice.line_id):
+	if _dims_chosen(ui_def, save_data, chapter_id, choice):
 		label.modulate = CHOSEN_DIM
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	btn.add_child(label)
