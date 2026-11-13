@@ -400,7 +400,7 @@ func _draw_box(id: String, font: Font) -> void:
 	var title_size: int = maxi(8, int(TITLE_FONT_SIZE * _zoom))
 	var kind_size: int = maxi(6, int(KIND_FONT_SIZE * _zoom))
 	var center_y: float = rect.get_center().y
-	var title: String = box.title if reached else _locked_text
+	var title: String = box.title if reached else tr(_locked_text)
 	var title_color: Color = TEXT_COLOR if reached else TEXT_LOCKED
 
 	var kind_text: String = _kind_text(box)
@@ -439,7 +439,7 @@ func _strip_color(box: VNEngineFlowGraph.Box) -> Color:
 func _kind_text(box: VNEngineFlowGraph.Box) -> String:
 	match box.kind:
 		"chapter":
-			return "CHAPTER"
+			return tr("CHAPTER")
 		"ending":
-			return "ENDING"
+			return tr("ENDING")
 	return ""

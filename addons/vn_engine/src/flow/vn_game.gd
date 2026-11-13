@@ -59,6 +59,7 @@ func _apply_content_root(path: String) -> void:
 			_shared_asset_resolver.load_map(asset_map)
 
 	_load_manifest()
+	VNEngineLocale.load_all(root, manifest.source_language if manifest != null else "en")
 
 
 func should_report_diagnostics(source: String) -> bool:
@@ -528,7 +529,7 @@ func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dicti
 		loading_params["min_duration"] = ui.loading_min_duration
 	if ui.loading_show_chapter_title and chapter.intro_style == "none":
 		loading_params["title"] = _chapter_title(chapter)
-		loading_params["subtitle"] = chapter.subtitle
+		loading_params["subtitle"] = chapter.shown_subtitle()
 	if chapter.intro_background != "":
 		loading_params["background_path"] = _shared_asset_resolver.resolve("background", chapter.intro_background)
 
@@ -536,7 +537,7 @@ func _enter_chapter_via_loading(chapter: VNEngineChapterDef, resume_state: Dicti
 
 
 func _chapter_title(chapter: VNEngineChapterDef) -> String:
-	return chapter.title if chapter.title != "" else chapter.id.capitalize()
+	return chapter.shown_title() if chapter.title != "" else chapter.id.capitalize()
 
 
 func _set_state(new_state: AppState) -> void:

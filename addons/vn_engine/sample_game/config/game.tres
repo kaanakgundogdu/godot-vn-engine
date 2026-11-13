@@ -13,6 +13,7 @@
 
 [resource]
 script = ExtResource("1_script")
+languages = PackedStringArray("ja")
 game_id = "vn_engine_sample"
 version = "0.1.0"
 first_chapter = "chapter1"

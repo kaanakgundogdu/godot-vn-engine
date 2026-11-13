@@ -112,6 +112,14 @@ To let players hear the text read aloud (Settings > Accessibility), turn on
 Project Settings > Audio > General > Text to Speech. The addon does not change
 your project settings for you.
 
+To translate your game, list the languages in `game.tres` (`languages`) and
+run Project > Tools > "VN Engine: Update translations". It writes one CSV
+file per language to `translations/` with every line, choice, name and menu
+text. Players pick the language in Settings > Text, and a CSV dropped into a
+`translations` folder next to the exported game adds a new language. The
+Japanese files of the sample game were made with Google Translate and are not
+reviewed by a native speaker.
+
 See [Config files](#config-files) for what each file does.
 
 

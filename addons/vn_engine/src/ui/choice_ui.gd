@@ -36,10 +36,12 @@ var _nvl_box: VBoxContainer = null
 var _nvl_texts: Dictionary = {}
 var _choice_labels: Array[RichTextLabel] = []
 var _applied_text_key: String = ""
+var _language: String = ""
 
 
 func _ready() -> void:
 	hide()
+	_language = VNEngineLocale.current()
 
 	if runner:
 		runner.choices_requested.connect(_on_choices_requested)
@@ -64,6 +66,29 @@ func _process(_delta: float) -> void:
 	if _choice_timer == null or _choice_timer.is_stopped():
 		return
 	_timer_dial.set_time(_choice_timer.time_left, _choice_timer.wait_time)
+
+
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_TRANSLATION_CHANGED or not is_node_ready() or _language == VNEngineLocale.current():
+		return
+	_language = VNEngineLocale.current()
+	var vars: Dictionary = runner.state.flags if runner != null and runner.state != null else {}
+	for choice: VNEngineChoiceOption in _choice_buttons:
+		var btn: Button = _choice_buttons[choice]
+		var label: RichTextLabel = btn.get_child(0) as RichTextLabel if is_instance_valid(btn) else null
+		if label == null:
+			continue
+		var text: String = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.shown_text(), vars))
+		var hint: String = _hint_line(choice, vars, label) if btn.disabled else ""
+		if _nvl_texts.has(choice):
+			_nvl_texts[choice] = text
+			label.text = "> " + VNEngineTextEffects.prepare(text) + hint.replace("
+", "
+  ")
+		else:
+			label.text = VNEngineTextEffects.prepare(text) + hint
+	_applied_text_key = ""
+	_on_settings_changed()
 
 
 func _text_key() -> String:
@@ -132,7 +157,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 
 	for choice in choices:
 		if nvl_page != null:
-			var nvl_text: String = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars))
+			var nvl_text: String = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.shown_text(), vars))
 			var nvl_btn: Button = _make_nvl_button(choice, nvl_text, vars, ui_def, chapter_id, save_data, created_labels)
 			_nvl_box = nvl_page.choice_container()
 			_nvl_box.add_child(nvl_btn)
@@ -157,7 +182,7 @@ func _on_choices_requested(choices: Array[VNEngineChoiceOption]) -> void:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		VNEngineSettings.apply_story_text(label, get_theme_default_font_size())
 		VNEngineTextEffects.install(label, false)
-		label.text = VNEngineTextEffects.prepare(VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.text, vars)))
+		label.text = VNEngineTextEffects.prepare(VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.shown_text(), vars)))
 		if _dims_chosen(ui_def, save_data, chapter_id, choice):
 			label.modulate = CHOSEN_DIM
 		if VNEngineHighContrast.on():
@@ -240,11 +265,11 @@ func _speak_choices(choices: Array[VNEngineChoiceOption], vars: Dictionary) -> v
 	if speech == null or (runner != null and runner.is_skip):
 		return
 	for choice in choices:
-		var text: String = VNEngineSpeech.plain_text(VNEngineTextMarkup.interpolate(choice.text, vars))
+		var text: String = VNEngineSpeech.plain_text(VNEngineTextMarkup.interpolate(choice.shown_text(), vars))
 		if choice.disabled_if != "" and VNEngineExpressionEvaluator.evaluate(choice.disabled_if, vars):
 			if not (text.ends_with(".") or text.ends_with("!") or text.ends_with("?")):
 				text += "."
-			text = "Locked: %s %s" % [text, VNEngineTextMarkup.interpolate(choice.hint, vars)]
+			text = tr("Locked: %s %s") % [text, VNEngineTextMarkup.interpolate(choice.shown_hint(), vars)]
 		speech.speak(text)
 
 
@@ -325,7 +350,7 @@ func _hint_line(choice: VNEngineChoiceOption, vars: Dictionary, label: RichTextL
 	if choice.hint == "":
 		return ""
 	var size: int = roundi(label.get_theme_font_size(&"normal_font_size") * HINT_SCALE)
-	var text: String = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.hint, vars))
+	var text: String = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(choice.shown_hint(), vars))
 	return "
 [font_size=%d][color=#%s]%s[/color][/font_size]" % [size, HINT_COLOR.to_html(), text]
 

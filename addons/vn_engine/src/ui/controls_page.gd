@@ -31,7 +31,7 @@ func _ready() -> void:
 	_rows_box.add_child(footer)
 
 	var reset_all_btn := Button.new()
-	reset_all_btn.text = "Reset all keys"
+	reset_all_btn.text = tr("Reset all keys")
 	reset_all_btn.pressed.connect(_on_reset_all_pressed)
 	footer.add_child(reset_all_btn)
 
@@ -120,7 +120,7 @@ func _build_action_row(action: StringName) -> HBoxContainer:
 
 	var reset_btn := Button.new()
 	reset_btn.theme_type_variation = &"VNSmallButton"
-	reset_btn.text = "Reset"
+	reset_btn.text = tr("Reset")
 	reset_btn.pressed.connect(_on_reset_action_pressed.bind(action))
 	row.add_child(reset_btn)
 
@@ -132,7 +132,7 @@ func _try_rebind(event: InputEvent) -> void:
 	var conflict: StringName = VNEngineInput.rebind(_capture_action, _capture_slot, event)
 	if conflict != &"":
 		var conflict_label: String = String(VNEngineInput.LABELS.get(conflict, conflict))
-		_set_status("Already used by %s" % conflict_label)
+		_set_status(tr("Already used by %s") % tr(conflict_label))
 		return
 
 	_capturing = false

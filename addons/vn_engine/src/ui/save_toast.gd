@@ -26,7 +26,7 @@ func _ready() -> void:
 	grow_vertical = Control.GROW_DIRECTION_END
 	modulate.a = 0.0
 	_label = Label.new()
-	_label.text = "Saved"
+	_label.text = tr("Saved")
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

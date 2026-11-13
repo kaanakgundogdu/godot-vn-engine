@@ -91,9 +91,14 @@ var _nvl_on: bool = false
 @onready var side_image: TextureRect = $BackgroundBox/SideImage
 @onready var text_margin: MarginContainer = $BackgroundBox/MarginContainer
 
+var _language: String = ""
+var _shown_node: VNEngineStoryNode = null
+var _relocalizing: bool = false
+
 
 func _ready() -> void:
 	hide()
+	_language = VNEngineLocale.current()
 	_active_label = dialog_label
 	nvl_page.dialog = self
 	blip_player = VNEngineBlipPlayer.new()
@@ -189,6 +194,7 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 			_show_choice_prompt()
 		return
 
+	_shown_node = node
 	var markup: Dictionary = VNEngineTextMarkup.parse(runner.current_text)
 	var text: String = VNEngineTextEffects.prepare(String(markup.get("text", "")), VNEngineMain.game().get_ui().text_pop_in)
 
@@ -210,7 +216,8 @@ func _on_dialog_started(node: VNEngineStoryNode) -> void:
 	_no_wait = bool(markup.get("no_wait", false))
 	refresh_text_fx()
 
-	_maybe_play_auto_voice(node)
+	if not _relocalizing:
+		_maybe_play_auto_voice(node)
 
 	_total_chars = _active_label.get_parsed_text().length()
 	_setup_blips(node.speaker_id)
@@ -624,6 +631,7 @@ func _side_image_path(node: VNEngineStoryNode) -> String:
 
 
 func clear_text() -> void:
+	_shown_node = null
 	_reset_reveal()
 	auto_timer.stop()
 	_hide_continue_indicator()
@@ -1088,6 +1096,20 @@ func _is_overlay_open() -> bool:
 
 func _is_input_locked() -> bool:
 	return runner != null and (runner.is_input_locked or (runner.bus != null and runner.bus.has_pending_block()))
+
+
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_TRANSLATION_CHANGED or not is_node_ready() or _language == VNEngineLocale.current():
+		return
+	_language = VNEngineLocale.current()
+	if runner == null or _shown_node == null or _shown_node != runner.get_current_node():
+		return
+	runner.refresh_text()
+	_relocalizing = true
+	_on_dialog_started(_shown_node)
+	_relocalizing = false
+	_no_wait = false
+	_reveal_to_end()
 
 
 func _on_settings_changed() -> void:

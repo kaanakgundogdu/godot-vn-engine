@@ -62,7 +62,7 @@ func _on_box_activated(box_id: String) -> void:
 	if box == null:
 		return
 
-	var message: String = 'Start from "%s"?' % box.title
+	var message: String = tr('Start from "%s"?') % box.title
 	if _runner != null:
 		if VNEngineMain.settings().autosave:
 			message += " Your progress is autosaved first."
@@ -71,8 +71,8 @@ func _on_box_activated(box_id: String) -> void:
 
 	var dialog: Control = VNEngineMain.game().open_overlay(&"confirm", {
 		"message": message,
-		"confirm_text": "Start",
-		"cancel_text": "Cancel",
+		"confirm_text": tr("Start"),
+		"cancel_text": tr("Cancel"),
 	})
 	if dialog == null:
 		return

@@ -11,3 +11,11 @@ class_name VNEngineChoiceOption
 @export var hint: String = ""
 @export var line_id: String = ""
 @export var line: int = 0
+
+
+func shown_text() -> String:
+	return VNEngineLocale.text(line_id, text)
+
+
+func shown_hint() -> String:
+	return VNEngineLocale.text(line_id + ".hint", hint)

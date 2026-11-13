@@ -3,6 +3,7 @@ class_name VNEngineScenarioParser
 
 
 const _TERMINAL_FLOW := ["jump", "end", "return", "goto_chapter"]
+const TEXT_COMMANDS := ["chapter_title", "datecard", "tts"]
 
 
 class _Header:
@@ -505,6 +506,12 @@ static func _assign_line_ids(script: VNEngineStoryScript) -> void:
 			if node.line_index > 1:
 				local_id += "." + str(node.line_index)
 		node.line_id = (chapter_id + "." + local_id) if chapter_id != "" else local_id
+		var counts: Dictionary = {}
+		for cmd in node.commands:
+			var cmd_name: String = cmd.get("name", "")
+			if TEXT_COMMANDS.has(cmd_name):
+				counts[cmd_name] = counts.get(cmd_name, 0) + 1
+				cmd["key"] = "%s.%s%s" % [node.line_id, cmd_name, "" if counts[cmd_name] == 1 else str(counts[cmd_name])]
 
 		var choice_base: String = (chapter_id + "." + node.base_id) if chapter_id != "" else node.base_id
 		for i in node.choices.size():

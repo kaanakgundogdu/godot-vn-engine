@@ -215,13 +215,13 @@ func play_node(index: int) -> void:
 		var cname: String = entry.get("name", "")
 		if DEFERRED_COMMANDS.has(cname) or entry.get("after_line", false):
 			continue
-		bus.apply(cname, entry.get("args", ""), ctx)
+		bus.apply(cname, VNEngineLocale.args(entry), ctx)
 
 	if bus.has_pending_block():
 		await bus.blocked_finished
 
 	current_choices = _visible_choices(node)
-	current_text = VNEngineTextMarkup.interpolate(node.text, state.flags)
+	current_text = VNEngineTextMarkup.interpolate(VNEngineLocale.text(node.line_id, node.text), state.flags)
 
 	if node.text == "" and current_choices.is_empty():
 		_consecutive_logic_count += 1
@@ -296,7 +296,7 @@ func _run_after_line_commands(node: VNEngineStoryNode) -> void:
 		var cname: String = entry.get("name", "")
 		if DEFERRED_COMMANDS.has(cname) or not entry.get("after_line", false):
 			continue
-		bus.apply(cname, entry.get("args", ""), ctx)
+		bus.apply(cname, VNEngineLocale.args(entry), ctx)
 
 	if bus.has_pending_block():
 		await bus.blocked_finished
@@ -323,7 +323,7 @@ func next_node() -> void:
 	for entry in current_node.commands:
 		var cname: String = entry.get("name", "")
 		if DEFERRED_COMMANDS.has(cname):
-			bus.apply(cname, entry.get("args", ""), ctx)
+			bus.apply(cname, VNEngineLocale.args(entry), ctx)
 			if _jumped:
 				return
 
@@ -383,6 +383,12 @@ func _page_current_line() -> void:
 		return
 	state.nvl_page.append({"speaker": node.speaker_id, "text": text, "kind": "line"})
 
+func refresh_text() -> void:
+	var node: VNEngineStoryNode = get_current_node()
+	if node != null:
+		current_text = VNEngineTextMarkup.interpolate(VNEngineLocale.text(node.line_id, node.text), state.flags)
+
+
 func get_current_node() -> VNEngineStoryNode:
 	if script_res == null or current_index < 0 or current_index >= script_res.nodes.size():
 		return null
@@ -420,7 +426,7 @@ func execute_load_game(slot_id: int = 0) -> void:
 		VNEngineMain.save_data().mark_line_seen(script_res.chapter_id, node.line_id)
 
 		current_choices = _visible_choices(node)
-		current_text = VNEngineTextMarkup.interpolate(node.text, state.flags)
+		current_text = VNEngineTextMarkup.interpolate(VNEngineLocale.text(node.line_id, node.text), state.flags)
 		line_seen_before = true
 		dialog_started.emit(node)
 		if not current_choices.is_empty():
@@ -501,7 +507,7 @@ func _apply_history_entry(entry: Dictionary) -> void:
 		return
 
 	var node: VNEngineStoryNode = script_res.nodes[current_index]
-	current_text = VNEngineTextMarkup.interpolate(node.text, state.flags)
+	current_text = VNEngineTextMarkup.interpolate(VNEngineLocale.text(node.line_id, node.text), state.flags)
 
 	if target_history_len > state.history.size():
 		state.history.append({

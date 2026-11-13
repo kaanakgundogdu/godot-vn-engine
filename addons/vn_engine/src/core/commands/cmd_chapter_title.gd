@@ -31,8 +31,8 @@ func apply(args: String, ctx: VNEngineCommandContext) -> void:
 				ctx.bus.resolve_block()
 			return
 
-		title_text = chapter.title
-		subtitle_text = chapter.subtitle
+		title_text = chapter.shown_title()
+		subtitle_text = chapter.shown_subtitle()
 		duration = chapter.intro_duration
 
 		match chapter.intro_style:

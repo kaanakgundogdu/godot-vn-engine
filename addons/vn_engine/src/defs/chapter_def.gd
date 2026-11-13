@@ -47,3 +47,11 @@ extends Resource
 ## Flag expression for the chapter-select screen. Empty means always
 ## unlocked.
 @export var unlock_condition: String = ""
+
+
+func shown_title() -> String:
+	return VNEngineLocale.text("chapter.%s.title" % id, title)
+
+
+func shown_subtitle() -> String:
+	return VNEngineLocale.text("chapter.%s.subtitle" % id, subtitle)

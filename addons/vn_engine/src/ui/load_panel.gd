@@ -95,11 +95,11 @@ func _update_slot_grid() -> void:
 
 	if current_category == Category.AUTO:
 		for slot_id in _auto_slots_newest_first():
-			slot_grid.add_child(_build_special_card(slot_id, "Auto Save"))
+			slot_grid.add_child(_build_special_card(slot_id, tr("Auto Save")))
 		return
 
 	if current_category == Category.QUICK:
-		slot_grid.add_child(_build_special_card(VNEngineSaveData.QUICKSAVE_SLOT, "Quick Save"))
+		slot_grid.add_child(_build_special_card(VNEngineSaveData.QUICKSAVE_SLOT, tr("Quick Save")))
 		return
 
 	var start_slot: int = (current_page - 1) * SLOTS_PER_PAGE + 1
@@ -117,7 +117,7 @@ func _auto_slots_newest_first() -> Array[int]:
 
 
 func _build_slot_button(slot_id: int) -> Button:
-	return _build_card(slot_id, "Save " + str(slot_id))
+	return _build_card(slot_id, tr("Save %d") % slot_id)
 
 
 func _build_special_card(slot_id: int, label: String) -> Button:
@@ -127,7 +127,7 @@ func _build_special_card(slot_id: int, label: String) -> Button:
 		card.modulate = Color(1.0, 1.0, 1.0, 0.55)
 
 		var locked_lbl := Label.new()
-		locked_lbl.text = "Locked"
+		locked_lbl.text = tr("Locked")
 		locked_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		locked_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		locked_lbl.theme_type_variation = &"VNSmallLabel"
@@ -184,16 +184,16 @@ func _build_card(slot_id: int, display_name: String) -> Button:
 			if thumb:
 				tex_rect.texture = thumb
 		VNEngineSaveData.SlotStatus.CORRUPT:
-			lbl.text = "Corrupted save"
+			lbl.text = tr("Corrupted save")
 			tex_rect.modulate = Color(0, 0, 0, 0.5)
 			slot_btn.disabled = true
 		VNEngineSaveData.SlotStatus.NEWER:
-			lbl.text = "Made with a newer version"
+			lbl.text = tr("Made with a newer version")
 			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			tex_rect.modulate = Color(0, 0, 0, 0.5)
 			slot_btn.disabled = not is_save_mode
 		_:
-			lbl.text = display_name + " (Empty)"
+			lbl.text = tr("%s (Empty)") % display_name
 			tex_rect.modulate = Color(0, 0, 0, 0.5)
 
 	slot_btn.pressed.connect(_on_slot_pressed.bind(slot_id))
@@ -218,9 +218,9 @@ func _handle_save_slot_pressed(slot_id: int) -> void:
 		return
 
 	VNEngineMain.game().open_overlay(&"confirm", {
-		"message": "This save was made with a newer version. Overwrite it?" if newer else "Overwrite this save?",
-		"confirm_text": "Overwrite",
-		"cancel_text": "Cancel",
+		"message": tr("This save was made with a newer version. Overwrite it?") if newer else tr("Overwrite this save?"),
+		"confirm_text": tr("Overwrite"),
+		"cancel_text": tr("Cancel"),
 	}).confirmed.connect(_on_overwrite_confirmed.bind(slot_id))
 
 
@@ -231,4 +231,4 @@ func _on_overwrite_confirmed(slot_id: int) -> void:
 func _saved_at_text(slot_id: int) -> String:
 	var bias_minutes: int = int(Time.get_time_zone_from_system().get("bias", 0))
 	var local: Dictionary = Time.get_datetime_dict_from_unix_time(VNEngineMain.save_data().slot_saved_at(slot_id) + bias_minutes * 60)
-	return "%d %s %02d:%02d" % [local["day"], MONTHS[int(local["month"]) - 1], local["hour"], local["minute"]]
+	return tr("{day} {month} {time}").format({"day": local["day"], "month": tr(MONTHS[int(local["month"]) - 1]), "time": "%02d:%02d" % [local["hour"], local["minute"]]})

@@ -36,3 +36,7 @@ extends Resource
 @export_group("Unlocks")
 ## Global flags unlocked when this ending plays, like "true_route".
 @export var unlocks: PackedStringArray = []
+
+
+func shown_title() -> String:
+	return VNEngineLocale.text("ending.%s.title" % id, title)

@@ -15,3 +15,11 @@ extends Resource
 @export_enum("default", "placeholder", "blur", "image") var locked_style: String = "default"
 ## Overrides ExtrasDef.locked_text for this entry. Empty uses the default.
 @export var locked_text: String = ""
+
+
+func shown_title() -> String:
+	return VNEngineLocale.text("extras.%s.title" % id, title)
+
+
+func shown_locked_text() -> String:
+	return VNEngineLocale.text("extras.%s.locked" % id, locked_text)

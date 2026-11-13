@@ -155,8 +155,8 @@ func _build_entries(kind: String, def_items: Array[VNEngineExtrasItem], resolver
 
 func _display_name(item: VNEngineExtrasItem, unlocked: bool, def: VNEngineExtrasDef) -> String:
 	if unlocked:
-		return item.title if item.title != "" else item.id
-	return item.locked_text if item.locked_text != "" else def.locked_name_text
+		return item.shown_title() if item.title != "" else item.id
+	return item.shown_locked_text() if item.locked_text != "" else def.locked_name_text
 
 
 func _populate_gallery_tab() -> void:
@@ -182,7 +182,7 @@ func _update_completion() -> void:
 	if total == 0:
 		return
 	var read: int = VNEngineReadProgress.read(VNEngineMain.save_data())
-	completion_label.text = "Story completion %d%%" % floori(read * 100.0 / total)
+	completion_label.text = tr("Story completion %d%%") % floori(read * 100.0 / total)
 
 
 func _populate_flowchart_tab() -> void:
@@ -207,7 +207,7 @@ func _populate_music_tab() -> void:
 	var resolver: VNEngineAssetResolver = VNEngineMain.game().get_shared_asset_resolver()
 	var entries: Array[VNEngineExtrasItem] = _build_entries("music", _extras_def.music_items, resolver)
 	if entries.is_empty():
-		_add_info_row(music_list, "No music yet.")
+		_add_info_row(music_list, tr("No music yet."))
 		music_counter_label.text = "0 / 0"
 		return
 
@@ -234,7 +234,7 @@ func _add_music_row(item: VNEngineExtrasItem, unlocked: bool) -> void:
 
 	if unlocked:
 		var play_btn: Button = Button.new()
-		play_btn.text = "Play"
+		play_btn.text = tr("Play")
 		play_btn.theme_type_variation = &"VNSmallButton"
 		play_btn.custom_minimum_size = Vector2(140, 56)
 		play_btn.pressed.connect(_on_music_play_pressed.bind(item.id, play_btn))
@@ -262,12 +262,12 @@ func _on_music_play_pressed(id: String, btn: Button) -> void:
 	music_preview_player.play()
 	_music_playing_id = id
 	_music_playing_btn = btn
-	btn.text = "Stop"
+	btn.text = tr("Stop")
 
 
 func _on_music_preview_finished() -> void:
 	if _music_playing_btn != null:
-		_music_playing_btn.text = "Play"
+		_music_playing_btn.text = tr("Play")
 	_music_playing_id = ""
 	_music_playing_btn = null
 
@@ -275,7 +275,7 @@ func _on_music_preview_finished() -> void:
 func _stop_music_preview() -> void:
 	music_preview_player.stop()
 	if _music_playing_btn != null:
-		_music_playing_btn.text = "Play"
+		_music_playing_btn.text = tr("Play")
 	_music_playing_id = ""
 	_music_playing_btn = null
 
@@ -285,7 +285,7 @@ func _populate_endings_tab() -> void:
 
 	var manifest: VNEngineGameManifest = VNEngineMain.game().get_manifest()
 	if manifest == null or manifest.endings.is_empty():
-		_add_info_row(endings_list, "Ending info unavailable.")
+		_add_info_row(endings_list, tr("Ending info unavailable."))
 		endings_counter_label.text = "0 / 0"
 		return
 
@@ -315,13 +315,13 @@ func _add_ending_row(ending: VNEngineEndingDef, seen: bool) -> void:
 		return
 
 	var number_label: Label = Label.new()
-	number_label.text = "END %02d" % ending.number
+	number_label.text = tr("END %02d") % ending.number
 	number_label.theme_type_variation = &"VNSmallLabel"
 	row.add_child(number_label)
 
 	var title_label: Label = Label.new()
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_label.text = ending.title if seen else _extras_def.locked_name_text
+	title_label.text = ending.shown_title() if seen else _extras_def.locked_name_text
 	row.add_child(title_label)
 
 	if seen:
@@ -339,7 +339,7 @@ func _populate_movies_tab() -> void:
 	var resolver: VNEngineAssetResolver = VNEngineMain.game().get_shared_asset_resolver()
 	var entries: Array[VNEngineExtrasItem] = _build_entries("movie", _extras_def.movie_items, resolver)
 	if entries.is_empty():
-		_add_info_row(movies_list, "No movies yet.")
+		_add_info_row(movies_list, tr("No movies yet."))
 		return
 
 	for item: VNEngineExtrasItem in entries:
@@ -361,7 +361,7 @@ func _add_movie_row(item: VNEngineExtrasItem, unlocked: bool) -> void:
 
 	if unlocked:
 		var play_btn: Button = Button.new()
-		play_btn.text = "Play"
+		play_btn.text = tr("Play")
 		play_btn.theme_type_variation = &"VNSmallButton"
 		play_btn.custom_minimum_size = Vector2(140, 56)
 		play_btn.pressed.connect(_on_movie_play_pressed.bind(item.id))

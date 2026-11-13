@@ -183,7 +183,7 @@ func _build_placeholder_lock_card(btn: Button, item: VNEngineExtrasItem, inset: 
 	inset.add_child(lock_bg)
 
 	var lock_label := Label.new()
-	lock_label.text = item.locked_text if item.locked_text != "" else _extras_def.locked_text
+	lock_label.text = item.shown_locked_text() if item.locked_text != "" else _extras_def.locked_text
 	lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -215,7 +215,7 @@ func _build_blur_lock_card(btn: Button, item: VNEngineExtrasItem, cg_path: Strin
 	inset.add_child(tex_rect)
 
 	var lock_badge := Label.new()
-	lock_badge.text = "Locked"
+	lock_badge.text = tr("Locked")
 	lock_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lock_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lock_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE

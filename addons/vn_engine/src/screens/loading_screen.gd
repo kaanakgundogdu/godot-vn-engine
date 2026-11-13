@@ -82,7 +82,7 @@ func _poll_all() -> float:
 
 func _update_status_label() -> void:
 	if _preloader != null and _preloader.asset_count() > 0 and not _preloader.is_done():
-		_status_label.text = "Loading assets %d/%d" % [_preloader.loaded_count(), _preloader.asset_count()]
+		_status_label.text = tr("Loading assets %d/%d") % [_preloader.loaded_count(), _preloader.asset_count()]
 	else:
 		_status_label.text = ""
 

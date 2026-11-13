@@ -24,7 +24,7 @@ func present(root: VNEngineMain, ending: VNEngineEndingDef, stage: VNEngineStage
 			opened = true
 
 	if not opened:
-		overlay.open(VNEngineCardOverlay.MODE_TITLE, {"title": ending.title, "hold_on_close": true}, ending.card_duration)
+		overlay.open(VNEngineCardOverlay.MODE_TITLE, {"title": ending.shown_title(), "hold_on_close": true}, ending.card_duration)
 
 	if not opened_movie and ending.bgm != "":
 		var bgm_path: String = shared_resolver.resolve("music", ending.bgm)

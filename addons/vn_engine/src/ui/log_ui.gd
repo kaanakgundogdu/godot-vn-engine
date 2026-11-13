@@ -144,7 +144,7 @@ func _build_name_row(speaker_id: String, line_id: String, char_entry: VNEngineCa
 	row.add_theme_constant_override("separation", 8)
 
 	var name_label := Label.new()
-	var display_name: String = char_entry.display_name if char_entry != null and char_entry.display_name != "" else speaker_id.capitalize().to_upper()
+	var display_name: String = VNEngineLocale.text("cast." + speaker_id, char_entry.display_name) if char_entry != null and char_entry.display_name != "" else speaker_id.capitalize().to_upper()
 	name_label.text = display_name
 	VNEngineSettings.apply_story_font(name_label)
 	name_label.add_theme_constant_override("outline_size", 4)
@@ -156,7 +156,7 @@ func _build_name_row(speaker_id: String, line_id: String, char_entry: VNEngineCa
 	if voice_path != "":
 		var play_btn := Button.new()
 		play_btn.text = "▶"
-		play_btn.tooltip_text = "Play voice"
+		play_btn.tooltip_text = tr("Play voice")
 		play_btn.custom_minimum_size = Vector2(32.0, 32.0)
 		play_btn.pressed.connect(_on_play_voice.bind(speaker_id, line_id))
 		row.add_child(play_btn)

@@ -226,9 +226,9 @@ func _on_menu_title() -> void:
 		return
 
 	game.open_overlay(&"confirm", {
-		"message": "Return to the title screen? Unsaved progress will be lost.",
-		"confirm_text": "Title",
-		"cancel_text": "Cancel",
+		"message": tr("Return to the title screen? Unsaved progress will be lost."),
+		"confirm_text": tr("Title"),
+		"cancel_text": tr("Cancel"),
 	}).confirmed.connect(game.return_to_title)
 
 
@@ -241,9 +241,9 @@ func _on_menu_quit() -> void:
 		return
 
 	game.open_overlay(&"confirm", {
-		"message": "Quit the game?",
-		"confirm_text": "Quit",
-		"cancel_text": "Cancel",
+		"message": tr("Quit the game?"),
+		"confirm_text": tr("Quit"),
+		"cancel_text": tr("Cancel"),
 	}).confirmed.connect(game.quit_game)
 
 
@@ -322,7 +322,7 @@ func _maybe_show_chapter_intro(chapter_id: String) -> void:
 
 	var overlay: VNEngineCardOverlay = VNEngineMain.instance().get_card_overlay()
 	var mode: String = VNEngineCardOverlay.MODE_TITLE
-	var card_params: Dictionary = {"title": chapter.title, "subtitle": chapter.subtitle}
+	var card_params: Dictionary = {"title": chapter.shown_title(), "subtitle": chapter.shown_subtitle()}
 
 	if chapter.intro_style == "eyecatch":
 		var image_path := ""

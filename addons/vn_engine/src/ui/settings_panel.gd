@@ -42,6 +42,7 @@ var _draft: VNEngineSettings
 @onready var autosave_toggle: CheckButton = %AutosaveToggle
 @onready var reduce_motion_toggle: CheckButton = %ReduceMotionToggle
 @onready var story_font_option: OptionButton = %StoryFontOption
+@onready var language_option: OptionButton = %LanguageOption
 @onready var story_font_preview: RichTextLabel = %StoryFontPreview
 @onready var high_contrast_toggle: CheckButton = %HighContrastToggle
 @onready var read_aloud_toggle: CheckButton = %ReadAloudToggle
@@ -77,6 +78,9 @@ func _ready() -> void:
 	for id: String in VNEngineStoryFonts.IDS:
 		story_font_option.add_item(VNEngineStoryFonts.NAMES[id])
 	story_font_option.item_selected.connect(_on_story_font_selected)
+	for code in VNEngineLocale.languages():
+		language_option.add_item(VNEngineLocale.language_name(code))
+	language_option.item_selected.connect(_on_language_selected)
 	high_contrast_toggle.toggled.connect(_on_high_contrast_toggled)
 	read_aloud_toggle.toggled.connect(_on_read_aloud_toggled)
 	speech_rate_slider.min_value = VNEngineSettings.TTS_RATE_MIN
@@ -122,6 +126,7 @@ func _on_reset_defaults_pressed() -> void:
 	_refresh_controls()
 	controls_page.refresh()
 	_draft.apply_audio()
+	VNEngineLocale.apply(_draft.language)
 
 
 func _refresh_controls() -> void:
@@ -142,6 +147,8 @@ func _refresh_controls() -> void:
 	text_blips_toggle.set_pressed_no_signal(_draft.text_blips)
 	text_blips_toggle.get_parent().visible = _text_blips_available()
 
+	language_option.get_parent().visible = VNEngineLocale.languages().size() > 1
+	language_option.select(VNEngineLocale.languages().find(VNEngineLocale.resolve(_draft.language)))
 	text_speed_slider.set_value_no_signal(_draft.text_speed_normalized)
 	text_scale_slider.set_value_no_signal(_draft.text_scale)
 	text_scale_label.text = "%d%%" % int(round(_draft.text_scale * 100.0))
@@ -156,10 +163,7 @@ func _refresh_controls() -> void:
 	story_font_option.select(VNEngineStoryFonts.IDS.find(_draft.story_font))
 	_apply_font_preview()
 	high_contrast_toggle.set_pressed_no_signal(_draft.high_contrast)
-	var speech: VNEngineSpeech = VNEngineMain.speech()
-	var tts_available: bool = speech != null and speech.available()
-	read_aloud_toggle.get_parent().visible = tts_available
-	speech_rate_slider.get_parent().visible = tts_available
+	_refresh_tts_rows()
 	read_aloud_toggle.set_pressed_no_signal(_draft.tts)
 	speech_rate_slider.set_value_no_signal(_draft.tts_rate)
 	speech_rate_label.text = _format_rate(_draft.tts_rate)
@@ -179,7 +183,7 @@ func _refresh_window_size_option() -> void:
 		var size: Vector2i = _window_size_choices[i]
 		var label: String = "%d x %d" % [size.x, size.y]
 		if custom_first and i == 0:
-			label = "Custom (%s)" % label
+			label = tr("Custom (%s)") % label
 		window_size_option.add_item(label)
 
 	window_size_option.select(_window_size_choices.find(current))
@@ -199,7 +203,7 @@ func _play_text_speed_preview() -> void:
 	if _preview_tween != null and _preview_tween.is_valid():
 		_preview_tween.kill()
 
-	text_speed_preview.text = _PREVIEW_SENTENCE
+	text_speed_preview.text = tr(_PREVIEW_SENTENCE)
 	_apply_preview_size()
 	text_speed_preview.visible_characters = 0
 	var total_chars: int = text_speed_preview.get_parsed_text().length()
@@ -316,6 +320,23 @@ func _on_autosave_toggled(button_pressed: bool) -> void:
 
 func _on_reduce_motion_toggled(button_pressed: bool) -> void:
 	_draft.reduce_motion = button_pressed
+
+
+func _refresh_tts_rows() -> void:
+	var speech: VNEngineSpeech = VNEngineMain.speech()
+	var tts_available: bool = speech != null and speech.available()
+	read_aloud_toggle.get_parent().visible = tts_available
+	speech_rate_slider.get_parent().visible = tts_available
+
+
+func _on_language_selected(index: int) -> void:
+	_draft.language = VNEngineLocale.languages()[index]
+	if VNEngineMain.speech() != null:
+		VNEngineMain.speech().stop()
+	VNEngineLocale.apply(_draft.language)
+	_refresh_tts_rows()
+	_refresh_window_size_option()
+	_play_text_speed_preview()
 
 
 func _on_story_font_selected(index: int) -> void:

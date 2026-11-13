@@ -304,9 +304,9 @@ func _on_quit_pressed() -> void:
 		return
 
 	game.open_overlay(&"confirm", {
-		"message": "Quit the game?",
-		"confirm_text": "Quit",
-		"cancel_text": "Cancel",
+		"message": tr("Quit the game?"),
+		"confirm_text": tr("Quit"),
+		"cancel_text": tr("Cancel"),
 	}).confirmed.connect(_on_quit_confirmed)
 
 

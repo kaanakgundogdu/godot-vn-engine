@@ -9,6 +9,7 @@ static var _bbcode: RegEx = RegEx.create_from_string("\\[(?!lb\\]|rb\\])[^\\]]*\
 static var _spaces: RegEx = RegEx.create_from_string("\\s+")
 
 var _voice: String = ""
+var _voice_language: String = ""
 
 
 func _ready() -> void:
@@ -47,7 +48,7 @@ func speak(text: String, interrupt: bool = false) -> void:
 
 
 func stop() -> void:
-	if enabled() and available():
+	if enabled() and ProjectSettings.get_setting(PROJECT_SETTING, false):
 		DisplayServer.tts_stop()
 
 
@@ -64,7 +65,7 @@ func toggle() -> void:
 	settings.tts = not settings.tts
 	settings.save_to_disk()
 	settings.changed.emit()
-	speak("Text to speech on", true)
+	speak(VNEngineLocale.ui("Text to speech on"), true)
 
 
 static func plain_text(text: String) -> String:
@@ -74,11 +75,12 @@ static func plain_text(text: String) -> String:
 
 
 func _voice_id() -> String:
-	if _voice != "":
+	var language: String = VNEngineLocale.current().get_slice("_", 0)
+	if _voice != "" and _voice_language == language:
 		return _voice
-	var voices: PackedStringArray = DisplayServer.tts_get_voices_for_language(OS.get_locale_language())
-	if voices.is_empty():
-		voices = PackedStringArray(DisplayServer.tts_get_voices().map(func(v: Dictionary) -> String: return String(v.get("id", ""))))
+	_voice = ""
+	_voice_language = language
+	var voices: PackedStringArray = DisplayServer.tts_get_voices_for_language(language)
 	if not voices.is_empty():
 		_voice = voices[0]
 	return _voice
@@ -94,21 +96,21 @@ func _on_focus_changed(control: Control) -> void:
 
 static func describe(control: Control) -> String:
 	if control is CheckButton or control is CheckBox:
-		return _with_row_label(control, "on" if (control as BaseButton).button_pressed else "off")
+		return _with_row_label(control, VNEngineLocale.ui("on") if (control as BaseButton).button_pressed else VNEngineLocale.ui("off"))
 	if control is OptionButton:
-		return _with_row_label(control, (control as OptionButton).text)
+		return _with_row_label(control, control.atr((control as OptionButton).text))
 	if control is Range:
 		return _with_row_label(control, _range_value(control as Range))
 	if control is Button:
 		var button := control as Button
-		var text: String = button.text
+		var text: String = button.atr(button.text)
 		if text == "":
 			for child in button.find_children("*", "", true, false):
 				if child is RichTextLabel or child is Label:
-					text = child.get_parsed_text() if child is RichTextLabel else (child as Label).text
+					text = child.get_parsed_text() if child is RichTextLabel else child.atr((child as Label).text)
 					break
 		if text != "" and button.disabled:
-			return "Locked: " + text
+			return VNEngineLocale.ui("Locked: %s") % text
 		return text
 	return ""
 
@@ -117,7 +119,7 @@ static func _with_row_label(control: Control, value: String) -> String:
 	var row_label: String = ""
 	for sibling in control.get_parent().get_children():
 		if sibling is Label and sibling.visible:
-			row_label = (sibling as Label).text
+			row_label = sibling.atr((sibling as Label).text)
 			break
 	return value if row_label == "" else "%s, %s" % [row_label, value]
 
@@ -125,5 +127,5 @@ static func _with_row_label(control: Control, value: String) -> String:
 static func _range_value(range_control: Range) -> String:
 	var labels: Array[Node] = range_control.get_parent().get_children().filter(func(n: Node) -> bool: return n is Label and n.get_index() > range_control.get_index())
 	if not labels.is_empty():
-		return (labels[0] as Label).text
+		return labels[0].atr((labels[0] as Label).text)
 	return "%d%%" % roundi(range_control.ratio * 100.0)

@@ -33,6 +33,11 @@ extends Resource
 ## How dialogue is shown: "adv" is a text box at the bottom, "nvl" is a
 ## full-screen page. Scenarios can switch with @nvl and @adv.
 @export_enum("adv", "nvl") var text_mode: String = "adv"
+## Language code the scenario and config texts are written in.
+@export var source_language: String = "en"
+## Language codes to translate into, e.g. ["ja"]. Project > Tools >
+## "VN Engine: Update translations" writes translations/<code>.csv for each.
+@export var languages: PackedStringArray = []
 
 @export_group("Text blips")
 ## If true, a short sound plays while dialog text types out. Players can

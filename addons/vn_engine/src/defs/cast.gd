@@ -34,6 +34,6 @@ func display_name_of(id: String) -> String:
 
 	var entry: VNEngineCastMember = get_entry(id)
 	if entry != null and entry.display_name != "":
-		return entry.display_name
+		return VNEngineLocale.text("cast." + id, entry.display_name)
 
 	return id.capitalize().to_upper()

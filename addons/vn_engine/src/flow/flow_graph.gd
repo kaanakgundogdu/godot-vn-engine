@@ -105,7 +105,7 @@ func _collect_boxes() -> void:
 		var chapter: VNEngineChapterDef = _manifest.chapters[i]
 		if chapter == null or chapter.id == "":
 			continue
-		var chapter_title: String = chapter.title if chapter.title != "" else chapter.id.capitalize()
+		var chapter_title: String = chapter.shown_title() if chapter.title != "" else chapter.id.capitalize()
 		_add_box("chapter:" + chapter.id, "chapter", chapter_title, chapter.id, i)
 		var script: VNEngineStoryScript = VNEngineScenarioLoader.load_script(chapter.script_path, _manifest.flags)
 		_scripts[chapter.id] = script
@@ -113,11 +113,12 @@ func _collect_boxes() -> void:
 		for node in script.nodes:
 			if not _has_flow(node):
 				continue
-			_add_box("%s.%s" % [script_chapter, node.base_id], "flow", _flow_title(node), chapter.id, i)
+			var box_id: String = "%s.%s" % [script_chapter, node.base_id]
+			_add_box(box_id, "flow", VNEngineLocale.text(box_id + ".flow", _flow_title(node)), chapter.id, i)
 	for ending in _manifest.endings:
 		if ending == null or ending.id == "":
 			continue
-		var ending_title: String = ending.title if ending.title != "" else ending.id
+		var ending_title: String = ending.shown_title() if ending.title != "" else ending.id
 		_add_box("ending:" + ending.id, "ending", ending_title, "", -1)
 
 

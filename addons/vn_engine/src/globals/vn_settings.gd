@@ -52,6 +52,7 @@ var story_font: String = VNEngineStoryFonts.DEFAULT
 var high_contrast: bool = false
 var tts: bool = false
 var tts_rate: float = 1.0
+var language: String = ""
 
 var autosave: bool = true
 
@@ -160,6 +161,7 @@ func copy_from(other: VNEngineSettings) -> void:
 	high_contrast = other.high_contrast
 	tts = other.tts
 	tts_rate = other.tts_rate
+	language = other.language
 	text_blips = other.text_blips
 	reduce_motion = other.reduce_motion
 	autosave = other.autosave
@@ -171,6 +173,7 @@ func apply_all() -> void:
 	apply_display()
 	apply_audio()
 	apply_input()
+	VNEngineLocale.apply(language)
 
 
 func apply_audio() -> void:
@@ -321,6 +324,7 @@ func _to_dict() -> Dictionary:
 		"high_contrast": high_contrast,
 		"tts": tts,
 		"tts_rate": tts_rate,
+		"language": language,
 		"autosave": autosave,
 		"input_overrides": input_overrides,
 	}
@@ -389,6 +393,8 @@ func _load_from_disk() -> void:
 		tts = bool(loaded["tts"])
 	if loaded.has("tts_rate"):
 		tts_rate = clampf(float(loaded["tts_rate"]), TTS_RATE_MIN, TTS_RATE_MAX)
+	if loaded.has("language"):
+		language = String(loaded["language"])
 	if loaded.has("autosave"):
 		autosave = bool(loaded["autosave"])
 	if loaded.has("input_overrides") and loaded["input_overrides"] is Dictionary:
