@@ -70,6 +70,7 @@ var current_choices: Array[VNEngineChoiceOption] = []
 var current_text: String = ""
 
 var _line_paged: bool = false
+var _source_texts: Dictionary = {}
 
 const RUNAWAY_LIMIT := 256
 
@@ -245,13 +246,7 @@ func play_node(index: int) -> void:
 	if node.speaker_id != "":
 		state.last_speaker = node.speaker_id
 
-	state.history.append({
-		"file": state.current_file,
-		"node_id": state.current_node_id,
-		"speaker": node.speaker_id,
-		"text": VNEngineTextMarkup.strip(current_text),
-		"line_id": node.line_id,
-	})
+	state.history.append(_history_entry(node))
 	if state.history.size() > VNEngineStoryState.MAX_HISTORY:
 		state.history.pop_front()
 		history_stack.shift_history(-1)
@@ -365,11 +360,16 @@ func clear_nvl_page() -> void:
 	state.nvl_page.clear()
 	nvl_page_cleared.emit()
 
-func add_nvl_choice(text: String) -> void:
+func add_nvl_choice(text: String, choice: VNEngineChoiceOption = null) -> void:
 	if not is_nvl():
 		return
 	_page_current_line()
-	state.nvl_page.append({"speaker": "", "text": text, "kind": "choice"})
+	var entry: Dictionary = {"speaker": "", "text": text, "kind": "choice"}
+	if choice != null:
+		entry["file"] = state.current_file
+		entry["line_id"] = choice.line_id
+		_add_vars(entry, choice.line_id, choice.text)
+	state.nvl_page.append(entry)
 
 func _page_current_line() -> void:
 	if _line_paged:
@@ -381,7 +381,74 @@ func _page_current_line() -> void:
 	var text: String = VNEngineTextMarkup.strip(current_text)
 	if text == "":
 		return
-	state.nvl_page.append({"speaker": node.speaker_id, "text": text, "kind": "line"})
+	var entry: Dictionary = {"speaker": node.speaker_id, "text": text, "kind": "line", "file": state.current_file, "line_id": node.line_id}
+	_add_vars(entry, node.line_id, node.text)
+	state.nvl_page.append(entry)
+
+func _history_entry(node: VNEngineStoryNode) -> Dictionary:
+	var entry: Dictionary = {
+		"file": state.current_file,
+		"node_id": state.current_node_id,
+		"speaker": node.speaker_id,
+		"text": VNEngineTextMarkup.strip(current_text),
+		"line_id": node.line_id,
+	}
+	_add_vars(entry, node.line_id, node.text)
+	return entry
+
+func _add_vars(entry: Dictionary, line_id: String, source: String) -> void:
+	var vars: Dictionary = VNEngineTextMarkup.used_vars(source + VNEngineLocale.text(line_id, source), state.flags)
+	if not vars.is_empty():
+		entry["vars"] = vars
+
+func relocalize() -> void:
+	var texts: Dictionary = {}
+	for entry: Dictionary in state.history:
+		_relocalize_entry(entry, texts)
+	for entry: Dictionary in state.nvl_page:
+		_relocalize_entry(entry, texts)
+
+func _relocalize_entry(entry: Dictionary, texts: Dictionary) -> void:
+	var line_id: String = String(entry.get("line_id", ""))
+	if line_id == "":
+		return
+	var file: String = String(entry.get("file", ""))
+	if file == "":
+		file = state.current_file
+	if not texts.has(file):
+		texts[file] = _texts_of(file)
+	if not texts[file].has(line_id):
+		return
+	var source: String = texts[file][line_id]
+	var template: String = VNEngineLocale.text(line_id, source)
+	var vars: Variant = entry.get("vars", {})
+	if not vars is Dictionary:
+		return
+	if vars.is_empty() and (source.contains("{$") or template.contains("{$")):
+		return
+	entry["text"] = VNEngineTextMarkup.strip(VNEngineTextMarkup.interpolate(template, vars))
+
+func _texts_of(file: String) -> Dictionary:
+	if script_res != null and script_res.source_path == file:
+		return _line_texts(script_res)
+	if not _source_texts.has(file):
+		var script: VNEngineStoryScript = null
+		if FileAccess.file_exists(file) or ResourceLoader.exists(file + ".res"):
+			script = VNEngineScenarioLoader.load_script(file, flag_list)
+		_source_texts[file] = _line_texts(script)
+	return _source_texts[file]
+
+func _line_texts(script: VNEngineStoryScript) -> Dictionary:
+	var texts: Dictionary = {}
+	if script == null:
+		return texts
+	for node in script.nodes:
+		if node.line_id != "":
+			texts[node.line_id] = node.text
+		for choice in node.choices:
+			if choice.line_id != "":
+				texts[choice.line_id] = choice.text
+	return texts
 
 func refresh_text() -> void:
 	var node: VNEngineStoryNode = get_current_node()
@@ -411,6 +478,7 @@ func execute_load_game(slot_id: int = 0) -> void:
 		var file_to_load: String = state.current_file
 
 		pending_choice_timer = {}
+		relocalize()
 		state_restored.emit(state)
 
 		if not _load_script(file_to_load):
@@ -446,6 +514,7 @@ func start_from_snapshot(data: Dictionary) -> void:
 	history_stack.clear()
 	_line_paged = false
 	pending_choice_timer = {}
+	relocalize()
 	state_restored.emit(state)
 
 	if not _load_script(state.current_file):
@@ -491,6 +560,7 @@ func _apply_history_entry(entry: Dictionary) -> void:
 		state.history.resize(target_history_len)
 
 	pending_choice_timer = {}
+	relocalize()
 	state_restored.emit(state)
 	_ended = false
 	end_reason = EndReason.SCRIPT_EXHAUSTED
@@ -510,13 +580,7 @@ func _apply_history_entry(entry: Dictionary) -> void:
 	current_text = VNEngineTextMarkup.interpolate(VNEngineLocale.text(node.line_id, node.text), state.flags)
 
 	if target_history_len > state.history.size():
-		state.history.append({
-			"file": state.current_file,
-			"node_id": state.current_node_id,
-			"speaker": node.speaker_id,
-			"text": VNEngineTextMarkup.strip(current_text),
-			"line_id": node.line_id,
-		})
+		state.history.append(_history_entry(node))
 
 	current_choices = _visible_choices(node)
 	line_seen_before = true

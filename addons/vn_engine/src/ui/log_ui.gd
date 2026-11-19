@@ -213,6 +213,12 @@ func _on_settings_changed() -> void:
 		_rebuild()
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and visible and runner != null:
+		runner.relocalize()
+		_rebuild()
+
+
 func _scroll_to_bottom() -> void:
 	var scrollbar: VScrollBar = scroll_container.get_v_scroll_bar()
 	scrollbar.value = scrollbar.max_value

@@ -49,7 +49,7 @@ static func collect(content_root: String, manifest: VNEngineGameManifest) -> Arr
 	var add := func(id: String, text: String) -> void:
 		if text.strip_edges() == "":
 			return
-		var key: String = _row_key(id, text)
+		var key: String = row_key(id, text)
 		if seen.has(key):
 			return
 		seen[key] = true
@@ -102,14 +102,14 @@ static func collect(content_root: String, manifest: VNEngineGameManifest) -> Arr
 
 
 static func write_language(path: String, code: String, source: String, rows: Array[PackedStringArray]) -> Dictionary:
-	var old: Dictionary = _read_existing(path)
+	var old: Dictionary = read_rows(path)
 	var engine: Dictionary = VNEngineLocale.read_file(VNEngineLocale.ENGINE_DIR + code + ".csv").get("rows", {})
 	var engine_ui: Dictionary = engine.get(VNEngineLocale.UI_ID, {})
 	var counts: Dictionary = {"translated": 0, "missing": 0, CHANGED: 0, UNUSED: 0}
 	var lines := PackedStringArray([_csv_line(["id", source, code, VNEngineLocale.STATUS_COLUMN])])
 	var used: Dictionary = {}
 	for row in rows:
-		var key: String = _row_key(row[0], row[1])
+		var key: String = row_key(row[0], row[1])
 		used[key] = true
 		var translated: String = ""
 		var status: String = ""
@@ -240,7 +240,7 @@ static func _find_roots(dir_path: String, roots: PackedStringArray) -> void:
 		_find_roots(dir_path.path_join(sub), roots)
 
 
-static func _read_existing(path: String) -> Dictionary:
+static func read_rows(path: String) -> Dictionary:
 	var result: Dictionary = {}
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if file == null:
@@ -254,11 +254,11 @@ static func _read_existing(path: String) -> Dictionary:
 			cells.append("")
 		for i in cells.size():
 			cells[i] = cells[i].replace("\r", "")
-		result[_row_key(cells[0], cells[1])] = cells
+		result[row_key(cells[0], cells[1])] = cells
 	return result
 
 
-static func _row_key(id: String, text: String) -> String:
+static func row_key(id: String, text: String) -> String:
 	return "ui:" + text if id == VNEngineLocale.UI_ID else id
 
 

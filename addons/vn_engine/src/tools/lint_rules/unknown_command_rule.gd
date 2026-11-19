@@ -23,7 +23,7 @@ func run(ctx: VNEngineAssetLintContext) -> void:
 			var body: String = line.substr(1)
 			var sp: int = body.find(" ")
 			var cmd_name: String = (body.substr(0, sp) if sp != -1 else body).strip_edges()
-			if cmd_name != "" and not VNEngineCommandRegistry.is_known(cmd_name):
+			if cmd_name != "" and not VNEngineCommandRegistry.is_known(cmd_name) and not VNEngineScenarioParser.BLOCK_COMMANDS.has(cmd_name):
 				ctx.warn("`@%s` (%s line %d) is not a known command (CommandRegistry.is_known() returns false)" % [cmd_name, path, line_no])
 
 		file.close()

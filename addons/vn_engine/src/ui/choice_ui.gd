@@ -449,7 +449,7 @@ func _finish_choice(choice: VNEngineChoiceOption) -> void:
 	var was_nvl: bool = _nvl_box != null
 	_clear_buttons()
 	if was_nvl and runner:
-		runner.add_nvl_choice(nvl_text)
+		runner.add_nvl_choice(nvl_text, choice)
 		var dialog: VNEngineDialogUI = runner.ctx.dialog_ui if runner.ctx != null else null
 		if dialog != null and dialog.nvl_page != null:
 			dialog.nvl_page.add_entry("", nvl_text, "choice")

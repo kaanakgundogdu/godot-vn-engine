@@ -22,6 +22,11 @@ func load_map(map: VNEngineAssetMap) -> void:
 
 
 func resolve(kind: String, name: String) -> String:
+	if kind == "voice":
+		var voice_path: String = _resolve_voice_file(name)
+		if voice_path == "":
+			_warn_once(kind, name, "'%s' (kind=voice) not found for language '%s'" % [name, VNEngineLocale.current()])
+		return voice_path
 	var cache_key: String = kind + "|" + name
 	if _cache.has(cache_key):
 		return _cache[cache_key]
@@ -102,24 +107,32 @@ func exists(kind: String, name: String) -> bool:
 
 
 func resolve_voice(char_id: String, line_id: String) -> String:
-	var name: String = "%s/%s" % [char_id, line_id]
-	var cache_key: String = "voice|%s" % name
+	return _resolve_voice_file("%s/%s" % [char_id, line_id])
+
+
+func _resolve_voice_file(name: String) -> String:
+	var language: String = VNEngineLocale.current()
+	var cache_key: String = "voice|%s|%s" % [language, name]
 	if _cache.has(cache_key):
 		return _cache[cache_key]
 
+	var found: String = ""
 	var entry: VNEngineAssetMapEntry = _entries.get("voice", null)
-	if entry == null:
-		_cache[cache_key] = ""
-		return ""
+	if entry != null:
+		var languages: Array[String] = [language]
+		if VNEngineLocale.source != language:
+			languages.append(VNEngineLocale.source)
+		for code: String in languages:
+			for ext: String in entry.extensions:
+				var path: String = entry.root + code + "/" + name + ext
+				if ResourceLoader.exists(path):
+					found = path
+					break
+			if found != "":
+				break
 
-	for ext: String in entry.extensions:
-		var path: String = entry.root + name + ext
-		if ResourceLoader.exists(path):
-			_cache[cache_key] = path
-			return path
-
-	_cache[cache_key] = ""
-	return ""
+	_cache[cache_key] = found
+	return found
 
 
 func list_all(kind: String) -> Array[String]:

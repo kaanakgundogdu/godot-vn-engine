@@ -26,6 +26,7 @@ func _run() -> void:
 		VNEngineUnknownCommandRule.new(),
 		VNEngineMissingSpriteRule.new(),
 		VNEngineUnknownSpeakerRule.new(),
+		VNEngineTranslationRule.new(),
 	]
 
 	var sections: Array[String] = []

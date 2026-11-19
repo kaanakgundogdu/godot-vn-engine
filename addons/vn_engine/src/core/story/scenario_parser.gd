@@ -4,6 +4,7 @@ class_name VNEngineScenarioParser
 
 const _TERMINAL_FLOW := ["jump", "end", "return", "goto_chapter"]
 const TEXT_COMMANDS := ["chapter_title", "datecard", "tts"]
+const BLOCK_COMMANDS := ["if", "elif", "else", "endif"]
 
 
 class _Header:
@@ -156,7 +157,7 @@ static func _parse_command(line: String, line_no: int, header: _Header, script: 
 		cmd_name = body.substr(0, space_idx).strip_edges()
 		cmd_args = body.substr(space_idx + 1).strip_edges()
 
-	if ["if", "elif", "else", "endif"].has(cmd_name):
+	if BLOCK_COMMANDS.has(cmd_name):
 		_parse_block(cmd_name, cmd_args, line_no, header, script)
 		return
 

@@ -58,7 +58,7 @@ func is_speaking() -> bool:
 
 func toggle() -> void:
 	var settings: VNEngineSettings = VNEngineMain.settings()
-	if settings == null:
+	if settings == null or (ProjectSettings.get_setting(PROJECT_SETTING, false) and _voice_id() == ""):
 		return
 	if settings.tts:
 		stop()

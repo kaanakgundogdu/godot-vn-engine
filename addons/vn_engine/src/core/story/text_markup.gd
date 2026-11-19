@@ -38,6 +38,19 @@ static func interpolate(text: String, vars: Dictionary) -> String:
 	return out
 
 
+static func used_vars(text: String, vars: Dictionary) -> Dictionary:
+	var used: Dictionary = {}
+	var start: int = text.find("{$")
+	while start != -1:
+		var close: int = text.find("}", start + 2)
+		if close == -1:
+			break
+		var name: String = text.substr(start + 2, close - start - 2).strip_edges()
+		used[name] = _lookup(name, vars)
+		start = text.find("{$", close + 1)
+	return used
+
+
 static func parse(text: String) -> Dictionary:
 	return _scan(text, [])
 

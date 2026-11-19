@@ -1102,7 +1102,12 @@ func _notification(what: int) -> void:
 	if what != NOTIFICATION_TRANSLATION_CHANGED or not is_node_ready() or _language == VNEngineLocale.current():
 		return
 	_language = VNEngineLocale.current()
-	if runner == null or _shown_node == null or _shown_node != runner.get_current_node():
+	if runner == null:
+		return
+	runner.relocalize()
+	if _shown_node == null or _shown_node != runner.get_current_node():
+		if _nvl_on:
+			_sync_nvl_page()
 		return
 	runner.refresh_text()
 	_relocalizing = true
